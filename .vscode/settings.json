@@ -1,0 +1,5 @@
+{
+    "idf.currentSetup": "d:\\tuvo\\esp\\v5.3.4\\esp-idf",
+    "idf.flashType": "UART",
+    "idf.portWin": "COM10"
+}

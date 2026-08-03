@@ -1,0 +1,39 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../iot-middleware-freertos-samples"
+		}
+	],
+	"settings": {
+		"clangd.arguments": [
+			"--background-index",
+			"--query-driver=d:\\3.Esp_idf\\.espressif\\tools\\xtensa-esp-elf\\esp-13.2.0_20240530\\xtensa-esp-elf\\bin\\xtensa-esp32s3-elf-gcc.exe",
+			"--compile-commands-dir=d:\\3.Esp_idf\\v5.3.3\\tomiot\\build"
+		],
+		"files.associations": {
+			"nvs_flash.h": "c",
+			"tcp_server_com.h": "c",
+			"array": "c",
+			"string": "c",
+			"string_view": "c",
+			"span": "c",
+			"socket.h": "c",
+			"esp_system.h": "c",
+			"freertos.h": "c",
+			"gptimer.h": "c",
+			"event_groups.h": "c",
+			"user_time.h": "c",
+			"task.h": "c",
+			"esp_netif.h": "c",
+			"user_system.h": "c",
+			"esp_sntp.h": "c",
+			"esp_wifi.h": "c",
+			"user_console.h": "c",
+			"string.h": "c",
+			"projdefs.h": "c"
+		}
+	}
+}

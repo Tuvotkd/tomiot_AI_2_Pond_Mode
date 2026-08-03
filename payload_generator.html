@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TomIoT Universal Azure Payload Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background: #1e293b;
+            padding: 30px 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 550px;
+            border: 1px solid #334155;
+        }
+
+        h2 {
+            text-align: center;
+            color: #38bdf8;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="datetime-local"],
+        select {
+            width: 100%;
+            padding: 12px;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 15px;
+            color: #f8fafc;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #38bdf8;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+        }
+
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .row>.form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #0369a1;
+        }
+
+        .result-box {
+            margin-top: 30px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 220px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background-color: #0f172a;
+            resize: none;
+            font-family: 'Fira Code', 'Courier New', Courier, monospace;
+            font-size: 13px;
+            box-sizing: border-box;
+            color: #38bdf8;
+            line-height: 1.5;
+        }
+
+        .copy-btn {
+            margin-top: 12px;
+            background-color: #059669;
+        }
+
+        .copy-btn:hover {
+            background-color: #047857;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #334155;
+            margin: 25px 0;
+        }
+
+        input[readonly] {
+            background-color: #1e293b;
+            color: #64748b;
+            cursor: not-allowed;
+            border-color: #334155;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Azure IoT Universal Payload</h2>
+
+        <div class="form-group">
+            <label>Chọn Mã Lệnh (CMD Code):</label>
+            <select id="modeSelect" onchange="toggleFields()">
+                <option value="101">101: Control ON/OFF (Bật/Tắt thiết bị)</option>
+                <option value="102">102: Add Schedule (Thêm Lịch mới - Chạy liên tục)</option>
+                <option value="103">103: Modify Schedule (Sửa Lịch cũ - Chạy liên tục)</option>
+                <option value="104">104: Delete Schedule (Xóa Lịch)</option>
+                <option value="105">105: Bulk Add Schedules (Thêm nhiều lịch - Chạy liên tục)</option>
+                <option value="106">106: Set WiFi Online (Cấu hình WiFi)</option>
+                <option value="107">107: Set Azure Online (Cấu hình Azure)</option>
+                <option value="108">108: Set Report Interval (Thời gian gửi báo cáo)</option>
+                <option value="113">113: Set VFD Report Interval (Thời gian gửi báo cáo biến tần)</option>
+                <option value="114">114: Configure Oxy Mode (Cấu hình Chế độ Oxy Ao)</option>
+                <option value="115">115: Configure Feeder Mode (Cấu hình Chế độ Máy Cho Ăn)</option>
+                <option value="109">109: Clear FRAM (Xóa toàn bộ FRAM & Reset)</option>
+                <option value="110">110: Reset ESP (Khởi động lại thiết bị)</option>
+                <option value="111">111: Pause Schedule (Tạm dừng lịch trình)</option>
+                <option value="112">112: Resume Schedule (Khôi phục lịch trình)</option>
+                <option value="501">501: Update Firmware (Cập nhật phần mềm)</option>
+                <option value="502">502: Ask Version (Hỏi phiên bản FW)</option>
+                <option value="503">503: Ask Reset Count (Hỏi số lần Reset)</option>
+                <option value="504">504: Ask Running Time (Hỏi thời gian chạy thiết bị)</option>
+                <option value="505">505: Ask IP Config (Hỏi địa chỉ IP của Web Portal)</option>
+                <option value="200">200: VFD Run Forward (Biến tần chạy thuận)</option>
+                <option value="201">201: VFD Run Reverse (Biến tần chạy nghịch)</option>
+                <option value="202">202: VFD Stop (Biến tần dừng mềm)</option>
+                <option value="203">203: VFD Set Accel Time (Đặt thời gian tăng tốc)</option>
+                <option value="204">204: VFD Set Decel Time (Đặt thời gian giảm tốc)</option>
+                <option value="205">205: VFD Set Frequency (Đặt tần số biến tần)</option>
+                <option value="206">206: VFD Enable Optimize for Shrimp Farm (Bật tối ưu hóa ao tôm)</option>
+                <option value="207">207: VFD Disable Optimize for Shrimp Farm (Tắt tối ưu hóa ao tôm)</option>
+                <option value="208">208: VFD Control Manual (Chuyển điều khiển bằng tay)</option>
+                <option value="209">209: VFD Control Auto (Chuyển điều khiển tự động)</option>
+                <option value="210">210: VFD Set Function Code (Đặt tham số bất kỳ)</option>
+            </select>
+        </div>
+
+        <hr>
+
+        <!-- Khối nhập liệu cho Thiết bị (Dùng cho 101, 102, 103, 104, 111, 112) -->
+        <div id="deviceFields">
+            <div class="form-group">
+                <label>Device ID (Mã thiết bị):</label>
+                <input type="number" id="deviceId" value="31" placeholder="e.g. 31" oninput="updateDeviceName()">
+            </div>
+            <div class="form-group">
+                <label>Device Name (Tên tự động phân giải):</label>
+                <input type="text" id="deviceName" value="Feeder_1_M1" placeholder="Tự động nhận diện tên..." readonly>
+            </div>
+        </div>
+
+        <!-- Khối nhập liệu riêng cho 101 (ON/OFF) -->
+        <div id="onoffFields" class="form-group">
+            <label>Action (Hành động):</label>
+            <select id="onoffValue">
+                <option value="1">Trạng thái ON (Bật - 1)</option>
+                <option value="0">Trạng thái OFF (Tắt - 0)</option>
+            </select>
+        </div>
+
+        <!-- Khối nhập liệu Index (Dùng cho 103 Modify, 104 Delete) -->
+        <div class="form-group hidden" id="scheduleIndexGroup">
+            <label>Schedule Index (ID của lịch trình trong bộ nhớ):</label>
+            <input type="number" id="scheduleIndex" value="0" placeholder="Ví dụ: 0, 1, 2...">
+        </div>
+
+        <!-- Tùy chọn khôi phục cho 112 -->
+        <div id="resumeOptionGroup" class="form-group hidden">
+            <label>Chế độ khôi phục (Resume Mode):</label>
+            <select id="resumeMode" onchange="toggleResumeMode()">
+                <option value="simple">Khôi phục chạy tiếp lịch cũ (Không gửi danh sách)</option>
+                <option value="bulk">Khôi phục và ghi đè danh sách lịch trình mới</option>
+            </select>
+        </div>
+
+        <!-- Khối nhập liệu Thời gian (Dùng cho 102 Add, 103 Modify, 105 Bulk, 112 Bulk) -->
+        <div id="timeFields" class="hidden">
+            <div class="form-group">
+                <label>Start Time (Bắt đầu):</label>
+                <input type="datetime-local" id="startTime">
+            </div>
+
+            <div class="form-group" id="endTimeGroup">
+                <label>End Time (Kết thúc):</label>
+                <input type="datetime-local" id="endTime">
+            </div>
+        </div>
+
+        <!-- Khối nhập liệu riêng cho 105 (Bulk Add) & 112 Bulk -->
+        <div id="bulkFields" class="hidden">
+            <div class="form-group">
+                <label>Số lượng lịch (Quantity):</label>
+                <input type="number" id="bulkCount" value="10">
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label>Thời lượng mỗi lịch (Phút):</label>
+                    <input type="number" id="bulkDuration" value="5">
+                </div>
+                <div class="form-group">
+                    <label>Khoảng nghỉ (Phút):</label>
+                    <input type="number" id="bulkGap" value="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- Khối cấu hình WiFi (106) -->
+        <div id="wifiFields" class="hidden">
+            <div class="form-group">
+                <label>WiFi SSID:</label>
+                <input type="text" id="wifiSSID" value="MebiOneIOT">
+            </div>
+            <div class="form-group">
+                <label>WiFi Password:</label>
+                <input type="text" id="wifiPASSWORD" value="MebiOne@123">
+            </div>
+        </div>
+
+        <!-- Khối cấu hình Azure (107) -->
+        <div id="azureFields" class="hidden">
+            <div class="form-group">
+                <label>Azure HostName:</label>
+                <input type="text" id="azureHostName" value="VuIoTHub.azure-devices.net">
+            </div>
+            <div class="form-group">
+                <label>Azure DeviceID:</label>
+                <input type="text" id="azureDeviceID" value="VuDevice">
+            </div>
+            <div class="form-group">
+                <label>Azure SymmetricKey:</label>
+                <input type="text" id="azureSymmetricKey" value="xOw6BICGo79moY00yntL7ZTQ0eRZD3sICfOe+29qRr0=">
+            </div>
+        </div>
+
+        <!-- Khối cấu hình Thời gian gửi tin (108, 113) -->
+        <div id="reportFields" class="hidden">
+            <div class="form-group">
+                <label>Tần suất báo cáo (TimeReport - Giây):</label>
+                <input type="number" id="timeReport" value="60">
+            </div>
+        </div>
+
+        <!-- Khối cấu hình Chế độ Oxy Ao (114) -->
+        <div id="oxyFields" class="hidden">
+            <div class="form-group">
+                <label>Chế độ Oxy (OxyMode):</label>
+                <select id="oxyMode" onchange="updateOxyActiveIdOptions()">
+                    <option value="1">1 (Auto - Tự động theo lịch)</option>
+                    <option value="0">0 (Manual - Bằng tay / Tắt)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Thiết bị Oxy hoạt động (ActiveDeviceID):</label>
+                <select id="oxyActiveDeviceID">
+                    <option value="21">21 (AirBlower_1)</option>
+                    <option value="22">22 (AirBlower_2)</option>
+                    <option value="99">99 (Disable / Không chọn khi Tắt)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Khối cấu hình Chế độ Máy Cho Ăn (115) -->
+        <div id="feederPondFields" class="hidden">
+            <div class="form-group">
+                <label>Chế độ Máy Cho Ăn (FeederMode):</label>
+                <select id="feederPondMode" onchange="updateFeederActiveIdOptions()">
+                    <option value="1">1 (Auto - Tự động theo lịch)</option>
+                    <option value="0">0 (Manual - Bằng tay / Tắt)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Máy Cho Ăn hoạt động (ActiveDeviceID):</label>
+                <select id="feederPondActiveDeviceID">
+                    <option value="31">31 (Feeder_1_M1)</option>
+                    <option value="32">32 (Feeder_1_M2)</option>
+                    <option value="99">99 (Disable / Không chọn khi Tắt)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Khối nhập liệu Firmware (Dùng cho 501 Update) -->
+        <div id="firmwareFields" class="hidden">
+            <div class="form-group">
+                <label>Phiên bản Firmware (Version):</label>
+                <input type="text" id="fwVersion" value="1.0.1" placeholder="e.g. 1.0.1">
+            </div>
+            <div class="form-group">
+                <label>Đường dẫn File (URL):</label>
+                <input type="text" id="fwUrl" value="EB250001.BIN" placeholder="e.g. EB250001.BIN">
+            </div>
+        </div>
+
+        <!-- Khối nhập liệu riêng cho 203 (Set Accel Time) -->
+        <div id="vfdAccelFields" class="hidden">
+            <div class="form-group">
+                <label>Thời gian tăng tốc (AccelTime - Giây):</label>
+                <input type="number" id="vfdAccelTime" value="5.0" step="0.1" min="0" max="3600">
+            </div>
+        </div>
+
+        <!-- Khối nhập liệu riêng cho 204 (Set Decel Time) -->
+        <div id="vfdDecelFields" class="hidden">
+            <div class="form-group">
+                <label>Thời gian giảm tốc (DecelTime - Giây):</label>
+                <input type="number" id="vfdDecelTime" value="10.0" step="0.1" min="0" max="3600">
+            </div>
+        </div>
+
+        <!-- Khối nhập liệu riêng cho 205 (Set Frequency) -->
+        <div id="vfdFreqFields" class="hidden">
+            <div class="form-group">
+                <label>Tần số (Frequency - Hz):</label>
+                <input type="number" id="vfdFrequency" value="45.5" step="0.01" min="0" max="400">
+            </div>
+        </div>
+
+        <!-- Khối nhập liệu riêng cho 210 (Set Function Code) -->
+        <div id="vfdFuncCodeFields" class="hidden">
+            <div class="form-group">
+                <label>Function Code (Mã tham số - Ví dụ: "P07.02", "P14.04"):</label>
+                <input type="text" id="vfdFunctionCode" value="P07.02" placeholder="e.g. P07.02">
+            </div>
+            <div class="form-group">
+                <label>Value (Giá trị cài đặt - Số nguyên):</label>
+                <input type="number" id="vfdFuncValue" value="6" placeholder="e.g. 6">
+            </div>
+        </div>
+
+        <!-- Nút Sinh Code -->
+        <button onclick="generatePayload()">Tạo mã JSON Payload</button>
+
+        <!-- Khung kết quả -->
+        <div class="result-box">
+            <label>JSON Payload kết quả (Dán vào Azure IoT Explorer):</label>
+            <textarea id="output" readonly></textarea>
+            <button class="copy-btn" onclick="copyToClipboard()">Copy JSON ngay</button>
+        </div>
+    </div>
+
+    <script>
+        // Khởi tạo thời gian mặc định cho các ô datetime
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('startTime').value = now.toISOString().slice(0, 16);
+
+        now.setHours(now.getHours() + 1);
+        document.getElementById('endTime').value = now.toISOString().slice(0, 16);
+
+        // Hàm ẩn/hiện các ô Input tuỳ theo Mã lệnh đang được chọn
+        function toggleFields() {
+            const mode = document.getElementById('modeSelect').value;
+
+            // Khởi tạo trạng thái ẩn hết
+            document.getElementById('deviceFields').classList.remove("hidden");
+            document.getElementById('onoffFields').classList.add("hidden");
+            document.getElementById('scheduleIndexGroup').classList.add("hidden");
+            document.getElementById('resumeOptionGroup').classList.add("hidden");
+            document.getElementById('timeFields').classList.add("hidden");
+            document.getElementById('endTimeGroup').classList.remove("hidden");
+            document.getElementById('bulkFields').classList.add("hidden");
+            document.getElementById('wifiFields').classList.add("hidden");
+            document.getElementById('azureFields').classList.add("hidden");
+            document.getElementById('reportFields').classList.add("hidden");
+            document.getElementById('oxyFields').classList.add("hidden");
+            document.getElementById('feederPondFields').classList.add("hidden");
+            document.getElementById('firmwareFields').classList.add("hidden");
+            document.getElementById('vfdAccelFields').classList.add("hidden");
+            document.getElementById('vfdDecelFields').classList.add("hidden");
+            document.getElementById('vfdFreqFields').classList.add("hidden");
+            document.getElementById('vfdFuncCodeFields').classList.add("hidden");
+
+            // Logic bật lại theo Mode
+            if (mode === "101") {
+                document.getElementById('onoffFields').classList.remove("hidden");
+            }
+            else if (mode === "102") {
+                document.getElementById('timeFields').classList.remove("hidden");
+            }
+            else if (mode === "103") {
+                document.getElementById('scheduleIndexGroup').classList.remove("hidden");
+                document.getElementById('timeFields').classList.remove("hidden");
+            }
+            else if (mode === "104") {
+                document.getElementById('scheduleIndexGroup').classList.remove("hidden");
+            }
+            else if (mode === "105") {
+                document.getElementById('timeFields').classList.remove("hidden");
+                document.getElementById('endTimeGroup').classList.add("hidden");
+                document.getElementById('bulkFields').classList.remove("hidden");
+            }
+            else if (mode === "106") {
+                document.getElementById('deviceFields').classList.add("hidden");
+                document.getElementById('wifiFields').classList.remove("hidden");
+            }
+            else if (mode === "107") {
+                document.getElementById('deviceFields').classList.add("hidden");
+                document.getElementById('azureFields').classList.remove("hidden");
+            }
+            else if (mode === "108" || mode === "113") {
+                document.getElementById('deviceFields').classList.add("hidden");
+                document.getElementById('reportFields').classList.remove("hidden");
+            }
+            else if (mode === "114") {
+                document.getElementById('deviceFields').classList.add("hidden");
+                document.getElementById('oxyFields').classList.remove("hidden");
+                updateOxyActiveIdOptions();
+            }
+            else if (mode === "115") {
+                document.getElementById('deviceFields').classList.add("hidden");
+                document.getElementById('feederPondFields').classList.remove("hidden");
+                updateFeederActiveIdOptions();
+            }
+            else if (mode === "109" || mode === "110" || mode === "502" || mode === "503" || mode === "504") {
+                document.getElementById('deviceFields').classList.add("hidden");
+            }
+            else if (mode === "111") {
+                // Chỉ cần Device ID
+            }
+            else if (mode === "112") {
+                document.getElementById('resumeOptionGroup').classList.remove("hidden");
+                toggleResumeMode();
+            }
+            else if (mode === "501") {
+                document.getElementById('deviceFields').classList.add("hidden");
+                document.getElementById('firmwareFields').classList.remove("hidden");
+            }
+            else if (mode === "200" || mode === "201" || mode === "202" || mode === "206" || mode === "207" || mode === "208" || mode === "209") {
+                document.getElementById('deviceFields').classList.add("hidden");
+            }
+            else if (mode === "203") {
+                document.getElementById('deviceFields').classList.add("hidden");
+                document.getElementById('vfdAccelFields').classList.remove("hidden");
+            }
+            else if (mode === "204") {
+                document.getElementById('deviceFields').classList.add("hidden");
+                document.getElementById('vfdDecelFields').classList.remove("hidden");
+            }
+            else if (mode === "205") {
+                document.getElementById('deviceFields').classList.add("hidden");
+                document.getElementById('vfdFreqFields').classList.remove("hidden");
+            }
+            else if (mode === "210") {
+                document.getElementById('deviceFields').classList.add("hidden");
+                document.getElementById('vfdFuncCodeFields').classList.remove("hidden");
+            }
+
+            generatePayload();
+        }
+
+        function toggleResumeMode() {
+            const mode = document.getElementById('modeSelect').value;
+            if (mode !== "112") return;
+            const resMode = document.getElementById('resumeMode').value;
+
+            if (resMode === "bulk") {
+                document.getElementById('timeFields').classList.remove("hidden");
+                document.getElementById('endTimeGroup').classList.add("hidden");
+                document.getElementById('bulkFields').classList.remove("hidden");
+            } else {
+                document.getElementById('timeFields').classList.add("hidden");
+                document.getElementById('bulkFields').classList.add("hidden");
+            }
+            generatePayload();
+        }
+
+        // Thuật toán format sang số 12 số nguyên (DDMMYYHHMMSS)
+        function formatToDDMMYYHHMMSS(dateString) {
+            const d = new Date(dateString);
+            const year = String(d.getFullYear()).slice(-2);
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            const seconds = "00";
+
+            return parseInt(`${day}${month}${year}${hours}${minutes}${seconds}`, 10);
+        }
+
+        // Hàm chính: Bọc data thành JSON
+        function generatePayload() {
+            const mode = parseInt(document.getElementById('modeSelect').value, 10);
+            const epoch_timestamp = Math.floor(Date.now() / 1000);
+
+            let dataObj = {};
+            let payload = {
+                "Code": mode,
+                "TimeStamp": epoch_timestamp
+            };
+
+            // 1. Lệnh ON/OFF
+            if (mode === 101) {
+                dataObj["DeviceName"] = document.getElementById('deviceName').value;
+                dataObj["DeviceId"] = parseInt(document.getElementById('deviceId').value, 10);
+                dataObj["Value"] = parseInt(document.getElementById('onoffValue').value, 10);
+                payload["Data"] = dataObj;
+            }
+            // 2. Lệnh thêm/sửa lịch đơn lẻ
+            else if (mode === 102 || mode === 103) {
+                dataObj["DeviceName"] = document.getElementById('deviceName').value;
+                dataObj["DeviceId"] = parseInt(document.getElementById('deviceId').value, 10);
+                const startRaw = document.getElementById('startTime').value;
+                const endRaw = document.getElementById('endTime').value;
+
+                dataObj["StartTime"] = formatToDDMMYYHHMMSS(startRaw);
+                dataObj["EndTime"] = formatToDDMMYYHHMMSS(endRaw);
+
+                if (mode === 103) {
+                    dataObj["Schedule_index"] = parseInt(document.getElementById('scheduleIndex').value, 10);
+                }
+                payload["Data"] = dataObj;
+            }
+            // 3. Lệnh xóa lịch
+            else if (mode === 104) {
+                dataObj["DeviceName"] = document.getElementById('deviceName').value;
+                dataObj["DeviceId"] = parseInt(document.getElementById('deviceId').value, 10);
+                dataObj["Schedule_Index"] = parseInt(document.getElementById('scheduleIndex').value, 10);
+                payload["Data"] = dataObj;
+            }
+            // 4. Lệnh nạp danh sách lịch Bulk
+            else if (mode === 105) {
+                const count = parseInt(document.getElementById('bulkCount').value, 10);
+                const duration = parseInt(document.getElementById('bulkDuration').value, 10);
+                const gap = parseInt(document.getElementById('bulkGap').value, 10);
+                const baseStartTime = new Date(document.getElementById('startTime').value);
+
+                let schedules = [];
+                for (let i = 0; i < count; i++) {
+                    let start = new Date(baseStartTime.getTime() + i * (duration + gap) * 60000);
+                    let end = new Date(start.getTime() + duration * 60000);
+
+                    schedules.push({
+                        "Schedule_Index": i,
+                        "StartTime": formatToDDMMYYHHMMSS(start),
+                        "EndTime": formatToDDMMYYHHMMSS(end),
+                        "IsFinished": 0
+                    });
+                }
+
+                payload["DeviceId"] = parseInt(document.getElementById('deviceId').value, 10);
+                payload["Data"] = schedules;
+            }
+            // 5. Cấu hình WiFi
+            else if (mode === 106) {
+                dataObj["SSID"] = document.getElementById('wifiSSID').value;
+                dataObj["PASSWORD"] = document.getElementById('wifiPASSWORD').value;
+                payload["Data"] = dataObj;
+            }
+            // 6. Cấu hình Azure
+            else if (mode === 107) {
+                dataObj["HostName"] = document.getElementById('azureHostName').value;
+                dataObj["DeviceID"] = document.getElementById('azureDeviceID').value;
+                dataObj["SymmetricKey"] = document.getElementById('azureSymmetricKey').value;
+                payload["Data"] = dataObj;
+            }
+            // 7. Tần suất gửi tin
+            else if (mode === 108 || mode === 113) {
+                dataObj["TimeReport"] = parseInt(document.getElementById('timeReport').value, 10);
+                payload["Data"] = dataObj;
+            }
+            // 7b. Cấu hình Chế độ Oxy Ao (114)
+            else if (mode === 114) {
+                const oMode = parseInt(document.getElementById('oxyMode').value, 10);
+                let actId = parseInt(document.getElementById('oxyActiveDeviceID').value, 10);
+                if (oMode === 0) actId = 99;
+                dataObj["OxyMode"] = oMode;
+                dataObj["ActiveDeviceID"] = actId;
+                payload["Data"] = dataObj;
+            }
+            // 7c. Cấu hình Chế độ Máy Cho Ăn Ao (115)
+            else if (mode === 115) {
+                const fMode = parseInt(document.getElementById('feederPondMode').value, 10);
+                let actId = parseInt(document.getElementById('feederPondActiveDeviceID').value, 10);
+                if (fMode === 0) actId = 99;
+                dataObj["FeederMode"] = fMode;
+                dataObj["ActiveDeviceID"] = actId;
+                payload["Data"] = dataObj;
+            }
+            // 8. Các lệnh không cần tham số (109, 110, 502, 503, 504, 505)
+            else if ([109, 110, 502, 503, 504, 505].includes(mode)) {
+                payload["Data"] = {};
+            }
+            // 9. Tạm dừng lịch trình
+            else if (mode === 111) {
+                dataObj["DeviceId"] = parseInt(document.getElementById('deviceId').value, 10);
+                payload["Data"] = dataObj;
+            }
+            // 10. Khôi phục lịch trình (Hỗ trợ nạp đè Bulk)
+            else if (mode === 112) {
+                const resMode = document.getElementById('resumeMode').value;
+                payload["DeviceId"] = parseInt(document.getElementById('deviceId').value, 10);
+
+                if (resMode === "bulk") {
+                    const count = parseInt(document.getElementById('bulkCount').value, 10);
+                    const duration = parseInt(document.getElementById('bulkDuration').value, 10);
+                    const gap = parseInt(document.getElementById('bulkGap').value, 10);
+                    const baseStartTime = new Date(document.getElementById('startTime').value);
+
+                    let schedules = [];
+                    for (let i = 0; i < count; i++) {
+                        let start = new Date(baseStartTime.getTime() + i * (duration + gap) * 60000);
+                        let end = new Date(start.getTime() + duration * 60000);
+
+                        schedules.push({
+                            "Schedule_Index": i,
+                            "StartTime": formatToDDMMYYHHMMSS(start),
+                            "EndTime": formatToDDMMYYHHMMSS(end),
+                            "IsFinished": 0
+                        });
+                    }
+                    payload["Data"] = schedules;
+                }
+            }
+            // 11. Cập nhật Firmware
+            else if (mode === 501) {
+                dataObj["Version"] = document.getElementById('fwVersion').value;
+                dataObj["Url"] = document.getElementById('fwUrl').value;
+                payload["Data"] = dataObj;
+            }
+            // 12. Biến tần chạy thuận/nghịch/dừng/tối ưu ao tôm/chuyển chế độ (200, 201, 202, 206, 207, 208, 209)
+            else if ([200, 201, 202, 206, 207, 208, 209].includes(mode)) {
+                payload["Data"] = {};
+            }
+            // 13. Cài đặt thời gian tăng tốc
+            else if (mode === 203) {
+                dataObj["AccelTime"] = parseFloat(document.getElementById('vfdAccelTime').value);
+                payload["Data"] = dataObj;
+            }
+            // 14. Cài đặt thời gian giảm tốc
+            else if (mode === 204) {
+                dataObj["DecelTime"] = parseFloat(document.getElementById('vfdDecelTime').value);
+                payload["Data"] = dataObj;
+            }
+            // 15. Cài đặt tần số
+            else if (mode === 205) {
+                dataObj["Frequency"] = parseFloat(document.getElementById('vfdFrequency').value);
+                payload["Data"] = dataObj;
+            }
+            // 16. Cài đặt tham số bất kỳ (210)
+            else if (mode === 210) {
+                dataObj["FunctionCode"] = document.getElementById('vfdFunctionCode').value;
+                dataObj["Value"] = parseInt(document.getElementById('vfdFuncValue').value, 10);
+                payload["Data"] = dataObj;
+            }
+
+            document.getElementById('output').value = JSON.stringify(payload, null, 2);
+        }
+
+        // Hàm copy vào clipboard
+        function copyToClipboard() {
+            const outputField = document.getElementById('output');
+            outputField.select();
+            document.execCommand('copy');
+            alert("Đã Copy JSON thành công! Hãy dán vào ô Direct Method trong Azure IoT Explorer.");
+        }
+
+        const deviceMap = {
+            11: "PaddleWheel_1",
+            12: "PaddleWheel_2",
+            13: "PaddleWheel_3",
+            14: "PaddleWheel_4",
+            21: "AirBlower_1",
+            22: "AirBlower_2",
+            31: "Feeder_1_M1",
+            32: "Feeder_1_M2",
+            41: "Syphon_1",
+            42: "Syphon_2"
+        };
+
+        function updateDeviceName() {
+            const id = parseInt(document.getElementById('deviceId').value, 10);
+            const nameField = document.getElementById('deviceName');
+            if (deviceMap[id]) {
+                nameField.value = deviceMap[id];
+            } else {
+                nameField.value = "N/A (Lỗi ID lạ)";
+            }
+
+            generatePayload();
+        }
+
+        function updateOxyActiveIdOptions() {
+            const m = document.getElementById('oxyMode').value;
+            const sel = document.getElementById('oxyActiveDeviceID');
+            if (m === "0") {
+                sel.value = "99";
+            } else if (sel.value === "99") {
+                sel.value = "21";
+            }
+            generatePayload();
+        }
+
+        function updateFeederActiveIdOptions() {
+            const m = document.getElementById('feederPondMode').value;
+            const sel = document.getElementById('feederPondActiveDeviceID');
+            if (m === "0") {
+                sel.value = "99";
+            } else if (sel.value === "99") {
+                sel.value = "31";
+            }
+            generatePayload();
+        }
+
+        // Lắng nghe sự thay đổi của các trường để cập nhật JSON tự động
+        document.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('input', generatePayload);
+            el.addEventListener('change', generatePayload);
+        });
+
+        // Kích hoạt lần đầu
+        toggleFields();
+        updateDeviceName();
+    </script>
+
+</body>
+
+</html>
