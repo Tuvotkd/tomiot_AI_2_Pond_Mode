@@ -1506,11 +1506,11 @@ void IO_Driver_Task(void)
     TickType_t startup_grace_ticks = xTaskGetTickCount() + pdMS_TO_TICKS(10000);
     ESP_LOGI("OUTPUT", "FRAM write protected for 10s during startup...");
     
-    TickType_t xLastBlinkTimeLED1 = xTaskGetTickCount();
-    uint8_t led1_state = 0;
+    static TickType_t xLastBlinkTimeLED1 = 0;
+    static uint8_t led1_state = 0;
     
-    TickType_t xLastBlinkTimeLED2 = xTaskGetTickCount();
-    uint8_t led2_state = 0;
+    static TickType_t xLastBlinkTimeLED2 = 0;
+    static uint8_t led2_state = 0;
 
     while(1)
     {

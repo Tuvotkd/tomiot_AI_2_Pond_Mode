@@ -278,7 +278,6 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
         User_External_Flash_Log_Event("WIFI_DISCONNECTED", details);
 
         Sys_Info.isWifiConnected = false;
-        Sys_Info.isTimeSync = false; // Reset cờ đồng bộ thời gian khi mất WiFi
         s_is_associated = false;
         IoTHubHandle.isAzureInitialized = false; // Đánh dấu Azure rớt kết nối ngay khi ngắt Wi-Fi
         IoTHubHandle.isNeedReinit = true;        // Yêu cầu Azure Reinit lại Socket khi có lại Wi-Fi
