@@ -494,63 +494,68 @@ esp_err_t ram_get_handler(httpd_req_t *req)
         cJSON_AddItemToObject(root, "external", external);
     }
 
+    cJSON_AddBoolToObject(root, "perf_enabled", Sys_Info.perfMonitorEnabled == 1);
+
     // Tải thông tin các Task đang hoạt động
     cJSON *tasks = cJSON_CreateArray();
     if (tasks)
     {
-        UBaseType_t uxArraySize = uxTaskGetNumberOfTasks();
-        TaskStatus_t *pxTaskStatusArray = malloc(uxArraySize * sizeof(TaskStatus_t));
-        if (pxTaskStatusArray != NULL)
+        if (Sys_Info.perfMonitorEnabled == 1)
         {
-            uxArraySize = uxTaskGetSystemState(pxTaskStatusArray, uxArraySize, NULL);
-            for (UBaseType_t i = 0; i < uxArraySize; i++)
+            UBaseType_t uxArraySize = uxTaskGetNumberOfTasks();
+            TaskStatus_t *pxTaskStatusArray = malloc(uxArraySize * sizeof(TaskStatus_t));
+            if (pxTaskStatusArray != NULL)
             {
-                cJSON *task = cJSON_CreateObject();
-                if (task)
+                uxArraySize = uxTaskGetSystemState(pxTaskStatusArray, uxArraySize, NULL);
+                for (UBaseType_t i = 0; i < uxArraySize; i++)
                 {
-                    cJSON_AddStringToObject(task, "name", pxTaskStatusArray[i].pcTaskName);
-                    cJSON_AddNumberToObject(task, "priority", pxTaskStatusArray[i].uxCurrentPriority);
-                    
-                    #if ( configTASKLIST_INCLUDE_COREID == 1 )
-                    cJSON_AddNumberToObject(task, "core", pxTaskStatusArray[i].xCoreID);
-                    #else
-                    cJSON_AddNumberToObject(task, "core", -1);
-                    #endif
-
-                    // Lấy dung lượng stack được phân bổ
-                    uint32_t total_stack = 4096; // Fallback mặc định
-                    const char *name = pxTaskStatusArray[i].pcTaskName;
-                    if (strcmp(name, "Azure Task") == 0) total_stack = 4*4096;
-                    else if (strcmp(name, "Azure transmit") == 0) total_stack = 2*4096;
-                    else if (strcmp(name, "Azure process") == 0 || strcmp(name, "Azure process loop") == 0) total_stack = 8192;
-                    else if (strcmp(name, "IO Task") == 0) total_stack = 8192;
-                    else if (strcmp(name, "http server Task") == 0 || strcmp(name, "httpd") == 0) total_stack = 10240;
-                    else if (strcmp(name, "Timer Task") == 0) total_stack = 4096;
-                    else if (strcmp(name, "OTA Task") == 0) total_stack = 8192;
-                    else if (strcmp(name, "Ext Flash Task") == 0) total_stack = 8192;
-                    else if (strcmp(name, "main") == 0) total_stack = CONFIG_ESP_MAIN_TASK_STACK_SIZE;
-                    else if (strcmp(name, "sys_evt") == 0) total_stack = CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE;
-                    else if (strcmp(name, "tiT") == 0) total_stack = CONFIG_LWIP_TCPIP_TASK_STACK_SIZE;
-                    else if (strcmp(name, "esp_timer") == 0) total_stack = CONFIG_ESP_TIMER_TASK_STACK_SIZE;
-                    else if (strncmp(name, "IDLE", 4) == 0) total_stack = 1536;
-                    else if (strncmp(name, "ipc", 3) == 0) total_stack = 2048;
-                    else if (strcmp(name, "Tmr Svc") == 0) total_stack = 2048;
-
-                    cJSON_AddNumberToObject(task, "stack_total", total_stack);
-                    cJSON_AddNumberToObject(task, "stack_min_free", pxTaskStatusArray[i].usStackHighWaterMark);
-                    
-                    // Kiểm tra xem stack có nằm trên PSRAM không
-                    bool is_psram = false;
-                    if (pxTaskStatusArray[i].pxStackBase != NULL)
+                    cJSON *task = cJSON_CreateObject();
+                    if (task)
                     {
-                        is_psram = esp_ptr_external_ram(pxTaskStatusArray[i].pxStackBase);
-                    }
-                    cJSON_AddBoolToObject(task, "is_psram", is_psram);
+                        cJSON_AddStringToObject(task, "name", pxTaskStatusArray[i].pcTaskName);
+                        cJSON_AddNumberToObject(task, "priority", pxTaskStatusArray[i].uxCurrentPriority);
+                        
+                        #if ( configTASKLIST_INCLUDE_COREID == 1 )
+                        cJSON_AddNumberToObject(task, "core", pxTaskStatusArray[i].xCoreID);
+                        #else
+                        cJSON_AddNumberToObject(task, "core", -1);
+                        #endif
 
-                    cJSON_AddItemToArray(tasks, task);
+                        // Lấy dung lượng stack được phân bổ
+                        uint32_t total_stack = 4096; // Fallback mặc định
+                        const char *name = pxTaskStatusArray[i].pcTaskName;
+                        if (strcmp(name, "Azure Task") == 0) total_stack = 4*4096;
+                        else if (strcmp(name, "Azure transmit") == 0) total_stack = 2*4096;
+                        else if (strcmp(name, "Azure process") == 0 || strcmp(name, "Azure process loop") == 0) total_stack = 8192;
+                        else if (strcmp(name, "IO Task") == 0) total_stack = 8192;
+                        else if (strcmp(name, "http server Task") == 0 || strcmp(name, "httpd") == 0) total_stack = 10240;
+                        else if (strcmp(name, "Timer Task") == 0) total_stack = 4096;
+                        else if (strcmp(name, "OTA Task") == 0) total_stack = 8192;
+                        else if (strcmp(name, "Ext Flash Task") == 0) total_stack = 8192;
+                        else if (strcmp(name, "main") == 0) total_stack = CONFIG_ESP_MAIN_TASK_STACK_SIZE;
+                        else if (strcmp(name, "sys_evt") == 0) total_stack = CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE;
+                        else if (strcmp(name, "tiT") == 0) total_stack = CONFIG_LWIP_TCPIP_TASK_STACK_SIZE;
+                        else if (strcmp(name, "esp_timer") == 0) total_stack = CONFIG_ESP_TIMER_TASK_STACK_SIZE;
+                        else if (strncmp(name, "IDLE", 4) == 0) total_stack = 1536;
+                        else if (strncmp(name, "ipc", 3) == 0) total_stack = 2048;
+                        else if (strcmp(name, "Tmr Svc") == 0) total_stack = 2048;
+
+                        cJSON_AddNumberToObject(task, "stack_total", total_stack);
+                        cJSON_AddNumberToObject(task, "stack_min_free", pxTaskStatusArray[i].usStackHighWaterMark);
+                        
+                        // Kiểm tra xem stack có nằm trên PSRAM không
+                        bool is_psram = false;
+                        if (pxTaskStatusArray[i].pxStackBase != NULL)
+                        {
+                            is_psram = esp_ptr_external_ram(pxTaskStatusArray[i].pxStackBase);
+                        }
+                        cJSON_AddBoolToObject(task, "is_psram", is_psram);
+
+                        cJSON_AddItemToArray(tasks, task);
+                    }
                 }
+                free(pxTaskStatusArray);
             }
-            free(pxTaskStatusArray);
         }
         cJSON_AddItemToObject(root, "tasks", tasks);
     }
@@ -611,7 +616,34 @@ esp_err_t system_logs_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+esp_err_t perf_config_post_handler(httpd_req_t *req)
+{
+    char content[128];
+    size_t recv_size = MIN(req->content_len, sizeof(content) - 1);
+    int ret = httpd_req_recv(req, content, recv_size);
+    if (ret <= 0) return ESP_FAIL;
+    content[ret] = '\0';
+    cJSON *root = cJSON_Parse(content);
+    if (root)
+    {
+        cJSON *enabled_item = cJSON_GetObjectItem(root, "enabled");
+        if (enabled_item)
+        {
+            bool enabled = cJSON_IsTrue(enabled_item);
+            Sys_Info.perfMonitorEnabled = enabled ? 1 : 0;
+            Fram_Write_Data(FRAM_PERF_MONITOR_ENABLED_ADDR, &Sys_Info.perfMonitorEnabled, 1);
+            ESP_LOGI("HTTP", "Performance monitor set to: %s", enabled ? "ON" : "OFF");
+        }
+        cJSON_Delete(root);
+    }
+    httpd_resp_set_type(req, "application/json");
+    const char *resp = "{\"status\":\"ok\"}";
+    httpd_resp_send(req, resp, strlen(resp));
+    return ESP_OK;
+}
+
 static const httpd_uri_t hello = { .uri = "/hello", .method = HTTP_GET, .handler = hello_get_handler };
+httpd_uri_t perf_config_api = { .uri = "/api/system/perf_config", .method = HTTP_POST, .handler = perf_config_post_handler };
 httpd_uri_t control = { .uri = "/api/control", .method = HTTP_POST, .handler = device_control_post_handler };
 httpd_uri_t uri_post_schedule = { .uri = "/api/schedule", .method = HTTP_POST, .handler = schedule_post_handler };
 httpd_uri_t status = { .uri = "/api/status", .method = HTTP_GET, .handler = status_get_handler };
@@ -661,6 +693,7 @@ static httpd_handle_t start_webserver(void)
     {
         httpd_register_uri_handler(server, &hello);
         httpd_register_uri_handler(server, &control);
+        httpd_register_uri_handler(server, &perf_config_api);
         httpd_register_uri_handler(server, &uri_post_schedule);
         httpd_register_uri_handler(server, &status);
         httpd_register_uri_handler(server, &schedules_api);

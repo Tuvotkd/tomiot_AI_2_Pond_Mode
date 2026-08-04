@@ -141,6 +141,16 @@ void User_System_Get_Config(void)
         if (vfd_enabled_raw > 1) vfd_enabled_raw = 1;
         Sys_Info.vfdEnabled = vfd_enabled_raw;
         ESP_LOGI("SYS INIT", "VFD Enabled Loaded: %s", Sys_Info.vfdEnabled == 1 ? "Kích hoạt (Enable)" : "Vô hiệu hóa (Disable)");
+
+        // 5. Đọc cấu hình Performance Monitor (1 byte)
+        uint8_t perf_enabled_raw = 0;
+        if (!Fram_Read_Data(FRAM_PERF_MONITOR_ENABLED_ADDR, &perf_enabled_raw, 1))
+        {
+            perf_enabled_raw = 0; // Mặc định là tắt
+        }
+        if (perf_enabled_raw > 1) perf_enabled_raw = 0;
+        Sys_Info.perfMonitorEnabled = perf_enabled_raw;
+        ESP_LOGI("SYS INIT", "Perf Monitor Enabled Loaded: %s", Sys_Info.perfMonitorEnabled == 1 ? "Bật (Enable)" : "Tắt (Disable)");
     }
 }
 
