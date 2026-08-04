@@ -6,6 +6,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "user_log_stream.h"
+#include "user_system.h"
 
 static WebLogLine_t *g_log_history = NULL;
 static uint32_t g_log_write_idx = 0;
@@ -23,6 +24,11 @@ int user_log_vprintf(const char *fmt, va_list args)
     else
     {
         ret = vprintf(fmt, args);
+    }
+
+    if (Sys_Info.consoleMonitorEnabled == 0)
+    {
+        return ret; // Bỏ qua lưu log vào buffer khi tắt tính năng Live Console
     }
 
     if (g_log_history != NULL && g_log_mutex != NULL)

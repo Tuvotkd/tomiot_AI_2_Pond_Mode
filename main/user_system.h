@@ -55,6 +55,7 @@
 #define FRAM_POND_MODE_ADDR         0x1610 // 1 byte: 0 = Mode 10 thiết bị, 1 = Mode 4 thiết bị
 #define FRAM_VFD_ENABLED_ADDR       0x1611 // 1 byte: 0 = Vô hiệu hóa, 1 = Kích hoạt (mặc định)
 #define FRAM_PERF_MONITOR_ENABLED_ADDR 0x1612 // 1 byte: 0 = Tắt (mặc định), 1 = Bật
+#define FRAM_CONSOLE_MONITOR_ENABLED_ADDR 0x1613 // 1 byte: 0 = Tắt (mặc định), 1 = Bật
 #define FRAM_IP_ADDR_ADDR           0x1620 // 16 bytes: IP address string format (e.g., "192.168.1.100")
 
 /**
@@ -127,15 +128,16 @@ typedef struct
     uint32_t rebootTimestamp;
     uint32_t timeReportDevice;
 
-    uint8_t feederMode;        // 0: 2 động cơ cũ, 1: 1 động cơ mới
+    uint8_t feederMode;        // 0: 2 động cơ, 1: 1 động cơ
     uint16_t activeFeederId;   // 31, 32 hoặc 99 (khi feederMode = 0)
     
-    uint8_t oxyMode;           // 0: 2 máy oxy cũ, 1: 1 máy oxy mới
+    uint8_t oxyMode;           // 0: 2 máy oxy, 1: 1 máy oxy
     uint16_t activeOxyId;      // 21, 22 hoặc 99 (khi oxyMode = 0)
 
     uint8_t pondMode;          // Pond_Mode_t: 0 = 10 thiết bị, 1 = 4 thiết bị
     uint8_t vfdEnabled;        // 0: Disabled, 1: Enabled
     uint8_t perfMonitorEnabled; // 0: Tắt (mặc định), 1: Bật
+    uint8_t consoleMonitorEnabled; // 0: Tắt (mặc định), 1: Bật
 }Sys_Info_Handle_t;
 
 extern Sys_Info_Handle_t Sys_Info;

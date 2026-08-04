@@ -151,6 +151,16 @@ void User_System_Get_Config(void)
         if (perf_enabled_raw > 1) perf_enabled_raw = 0;
         Sys_Info.perfMonitorEnabled = perf_enabled_raw;
         ESP_LOGI("SYS INIT", "Perf Monitor Enabled Loaded: %s", Sys_Info.perfMonitorEnabled == 1 ? "Bật (Enable)" : "Tắt (Disable)");
+
+        // 6. Đọc cấu hình Console Monitor (1 byte)
+        uint8_t console_enabled_raw = 0;
+        if (!Fram_Read_Data(FRAM_CONSOLE_MONITOR_ENABLED_ADDR, &console_enabled_raw, 1))
+        {
+            console_enabled_raw = 0; // Mặc định là tắt
+        }
+        if (console_enabled_raw > 1) console_enabled_raw = 0;
+        Sys_Info.consoleMonitorEnabled = console_enabled_raw;
+        ESP_LOGI("SYS INIT", "Console Monitor Enabled Loaded: %s", Sys_Info.consoleMonitorEnabled == 1 ? "Bật (Enable)" : "Tắt (Disable)");
     }
 }
 

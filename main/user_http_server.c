@@ -570,6 +570,9 @@ esp_err_t ram_get_handler(httpd_req_t *req)
 
 esp_err_t system_logs_get_handler(httpd_req_t *req)
 {
+    // Thêm custom header để thông báo trạng thái bật/tắt Console cho trình duyệt
+    httpd_resp_set_hdr(req, "X-Console-Enabled", Sys_Info.consoleMonitorEnabled == 1 ? "true" : "false");
+
     char query[64] = {0};
     uint32_t last_seq = 0;
     if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK)
@@ -581,37 +584,38 @@ esp_err_t system_logs_get_handler(httpd_req_t *req)
         }
     }
 
-    uint32_t max_count = 100;
-    WebLogLine_t *logs = (WebLogLine_t *)heap_caps_malloc(max_count * sizeof(WebLogLine_t), MALLOC_CAP_SPIRAM);
-    if (logs == NULL) {
-        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of Memory");
+    cJSON *root = cJSON_CreateArray();
+    if (root == NULL) {
+        return ESP_FAIL;
     }
 
-    uint32_t count = User_Log_Stream_Get(last_seq, logs, max_count);
-
-    cJSON *root = cJSON_CreateArray();
-    if (root != NULL)
+    if (Sys_Info.consoleMonitorEnabled == 1)
     {
-        for (uint32_t i = 0; i < count; i++)
+        uint32_t max_count = 100;
+        WebLogLine_t *logs = (WebLogLine_t *)heap_caps_malloc(max_count * sizeof(WebLogLine_t), MALLOC_CAP_SPIRAM);
+        if (logs != NULL)
         {
-            cJSON *item = cJSON_CreateObject();
-            if (item != NULL)
+            uint32_t count = User_Log_Stream_Get(last_seq, logs, max_count);
+            for (uint32_t i = 0; i < count; i++)
             {
-                cJSON_AddNumberToObject(item, "seq", logs[i].seq);
-                cJSON_AddStringToObject(item, "text", logs[i].text);
-                cJSON_AddItemToArray(root, item);
+                cJSON *item = cJSON_CreateObject();
+                if (item != NULL)
+                {
+                    cJSON_AddNumberToObject(item, "seq", logs[i].seq);
+                    cJSON_AddStringToObject(item, "text", logs[i].text);
+                    cJSON_AddItemToArray(root, item);
+                }
             }
+            free(logs);
         }
     }
-
-    free(logs);
 
     char *json_str = cJSON_PrintUnformatted(root);
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
     httpd_resp_send(req, json_str, strlen(json_str));
     free(json_str);
-    if (root != NULL) cJSON_Delete(root);
+    cJSON_Delete(root);
 
     return ESP_OK;
 }
@@ -642,8 +646,35 @@ esp_err_t perf_config_post_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+esp_err_t console_config_post_handler(httpd_req_t *req)
+{
+    char content[128];
+    size_t recv_size = MIN(req->content_len, sizeof(content) - 1);
+    int ret = httpd_req_recv(req, content, recv_size);
+    if (ret <= 0) return ESP_FAIL;
+    content[ret] = '\0';
+    cJSON *root = cJSON_Parse(content);
+    if (root)
+    {
+        cJSON *enabled_item = cJSON_GetObjectItem(root, "enabled");
+        if (enabled_item)
+        {
+            bool enabled = cJSON_IsTrue(enabled_item);
+            Sys_Info.consoleMonitorEnabled = enabled ? 1 : 0;
+            Fram_Write_Data(FRAM_CONSOLE_MONITOR_ENABLED_ADDR, &Sys_Info.consoleMonitorEnabled, 1);
+            ESP_LOGI("HTTP", "Console monitor set to: %s", enabled ? "ON" : "OFF");
+        }
+        cJSON_Delete(root);
+    }
+    httpd_resp_set_type(req, "application/json");
+    const char *resp = "{\"status\":\"ok\"}";
+    httpd_resp_send(req, resp, strlen(resp));
+    return ESP_OK;
+}
+
 static const httpd_uri_t hello = { .uri = "/hello", .method = HTTP_GET, .handler = hello_get_handler };
 httpd_uri_t perf_config_api = { .uri = "/api/system/perf_config", .method = HTTP_POST, .handler = perf_config_post_handler };
+httpd_uri_t console_config_api = { .uri = "/api/system/console_config", .method = HTTP_POST, .handler = console_config_post_handler };
 httpd_uri_t control = { .uri = "/api/control", .method = HTTP_POST, .handler = device_control_post_handler };
 httpd_uri_t uri_post_schedule = { .uri = "/api/schedule", .method = HTTP_POST, .handler = schedule_post_handler };
 httpd_uri_t status = { .uri = "/api/status", .method = HTTP_GET, .handler = status_get_handler };
@@ -694,6 +725,7 @@ static httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &hello);
         httpd_register_uri_handler(server, &control);
         httpd_register_uri_handler(server, &perf_config_api);
+        httpd_register_uri_handler(server, &console_config_api);
         httpd_register_uri_handler(server, &uri_post_schedule);
         httpd_register_uri_handler(server, &status);
         httpd_register_uri_handler(server, &schedules_api);
