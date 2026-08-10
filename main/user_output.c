@@ -361,7 +361,7 @@ void User_Device_Init(void)
     {
         for (int i = 0; i < DEVICE_MAX_NUM; i++)
         {
-            if (saved_runtimes[i] != 0xFFFFFFFF)
+            if (saved_runtimes[i] < 86400)
             {
                 DeviceHandle.Device[i].runtime = saved_runtimes[i];
             }
