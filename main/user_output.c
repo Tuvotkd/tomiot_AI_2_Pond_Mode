@@ -501,7 +501,7 @@ void User_Device_Report_Daily_Runtimes_And_Reset(void)
 
 void User_Device_Report(void)
 {
-    uint8_t *rpData = (uint8_t *)calloc(1536, sizeof(uint8_t));
+    uint8_t *rpData = (uint8_t *)calloc(2048, sizeof(uint8_t));
     if (rpData == NULL)
     {
         ESP_LOGE("DEVICE REPORT", "Do not enough RAM for report data");
@@ -588,7 +588,7 @@ void User_Device_Report(void)
         cJSON_AddItemToObject(root, "VfdData", vfdObj);
     }
 
-    if (cJSON_PrintPreallocated(root, (char *)rpData, 1536, false) != true)
+    if (cJSON_PrintPreallocated(root, (char *)rpData, 2048, false) != true)
     {
         ESP_LOGE("DEVICE REPORT", "Do not enough RAM for render json");
         cJSON_Delete(root);
@@ -600,7 +600,7 @@ void User_Device_Report(void)
     ESP_LOGI("REPORT", "---------- Azure report data ----------");
     
     /* Tạo chuỗi màu cho giao diện terminal log (không làm thay đổi data truyền lên Azure) */
-    char *colored_rpData = malloc(3000);
+    char *colored_rpData = malloc(4096);
     if (colored_rpData)
     {
         char *d = colored_rpData;

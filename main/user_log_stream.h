@@ -6,7 +6,7 @@
 #include "esp_err.h"
 
 #define LOG_LINE_MAX_COUNT  256
-#define LOG_LINE_MAX_LEN    1024
+#define LOG_LINE_MAX_LEN    2048
 
 typedef struct
 {
