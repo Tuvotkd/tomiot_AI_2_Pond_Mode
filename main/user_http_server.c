@@ -334,7 +334,7 @@ esp_err_t fram_map_get_handler(httpd_req_t *req)
     uint32_t total_capacity = 8192;
     Fram_Get_Capacity(&total_capacity);
 
-    uint32_t used_bytes = 5509;
+    uint32_t used_bytes = 5566;
     uint32_t free_bytes = (total_capacity > used_bytes) ? (total_capacity - used_bytes) : 0;
 
     cJSON *root = cJSON_CreateObject();
@@ -425,11 +425,19 @@ esp_err_t fram_map_get_handler(httpd_req_t *req)
     }
     cJSON_AddItemToArray(blocks, azureBlock);
 
-    /* 4. System States & Modes block (0x1600 - 0x1611) */
+    /* 3.1. Device Daily Runtimes block (0x1580 - 0x15A7) */
+    cJSON *runtimeBlock = cJSON_CreateObject();
+    cJSON_AddStringToObject(runtimeBlock, "name", "Device Daily Runtimes");
+    cJSON_AddStringToObject(runtimeBlock, "addr", "0x1580 - 0x15A7");
+    cJSON_AddNumberToObject(runtimeBlock, "size", 40);
+    cJSON_AddStringToObject(runtimeBlock, "type", "runtime");
+    cJSON_AddItemToArray(blocks, runtimeBlock);
+
+    /* 4. System States & Modes block (0x1600 - 0x1615) */
     cJSON *sysBlock = cJSON_CreateObject();
-    cJSON_AddStringToObject(sysBlock, "name", "System States & Modes (Pond, VFD, Feeder, Oxy, Outputs)");
-    cJSON_AddStringToObject(sysBlock, "addr", "0x1600 - 0x1611");
-    cJSON_AddNumberToObject(sysBlock, "size", 18);
+    cJSON_AddStringToObject(sysBlock, "name", "System States, Modes & Logs Config");
+    cJSON_AddStringToObject(sysBlock, "addr", "0x1600 - 0x1615");
+    cJSON_AddNumberToObject(sysBlock, "size", 22);
     cJSON_AddStringToObject(sysBlock, "type", "system");
     cJSON_AddNumberToObject(sysBlock, "pond_mode", Sys_Info.pondMode);
     cJSON_AddNumberToObject(sysBlock, "vfd_enabled", Sys_Info.vfdEnabled);
@@ -439,13 +447,13 @@ esp_err_t fram_map_get_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(sysBlock, "oxy_active_id", Sys_Info.activeOxyId);
     cJSON_AddItemToArray(blocks, sysBlock);
 
-    /* 5. Free Space block (0x1612 - dynamic end) */
+    /* 5. Free Space block (0x1616 - dynamic end) */
     cJSON *freeBlock = cJSON_CreateObject();
     cJSON_AddStringToObject(freeBlock, "name", "Unallocated Free Memory");
     char freeAddrStr[32];
-    snprintf(freeAddrStr, sizeof(freeAddrStr), "0x1612 - 0x%04X", (unsigned int)(total_capacity - 1));
+    snprintf(freeAddrStr, sizeof(freeAddrStr), "0x1616 - 0x%04X", (unsigned int)(total_capacity - 1));
     cJSON_AddStringToObject(freeBlock, "addr", freeAddrStr);
-    cJSON_AddNumberToObject(freeBlock, "size", (total_capacity > 0x1612) ? (total_capacity - 0x1612) : 0);
+    cJSON_AddNumberToObject(freeBlock, "size", (total_capacity > 0x1616) ? (total_capacity - 0x1616) : 0);
     cJSON_AddStringToObject(freeBlock, "type", "free");
     cJSON_AddItemToArray(blocks, freeBlock);
 

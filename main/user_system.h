@@ -46,7 +46,7 @@
 #define DEVICE_SPACE_LEN_IN_FRAM    512
 #define NUM_OF_DEVICE               12
 
-#define FRAM_DEVICE_RUNTIMES_ADDR         0x1000 // 40 bytes: 10 devices * 4 bytes (uint32_t)
+#define FRAM_DEVICE_RUNTIMES_ADDR         0x1580 // 40 bytes: 10 devices * 4 bytes (uint32_t)
 #define FRAM_FEEDER_MODE_ADDR             0x160A // 1 byte
 #define FRAM_FEEDER_ACTIVE_ID_ADDR        0x160B // 2 bytes
 
