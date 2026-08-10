@@ -161,7 +161,7 @@ static uint32_t prvConnectToServerWithBackoffRetries( const char * pcHostName, u
                                                           ( uint16_t ) ulPort,
                                                           pxNetworkCredentials,
                                                           8000U,   /* ulReceiveTimeoutMs – tăng lên 8s để Socket không block vô hạn khi mạng chập chờn */
-                                                          8000U ); /* ulSendTimeoutMs */
+                                                          3000U ); /* ulSendTimeoutMs - giảm từ 8s xuống 3s để thoát block sớm nếu nghẽn mạng */
 
     return ( xTlsStatus == eTLSTransportSuccess ) ? 0U : 1U;
 }
@@ -1015,7 +1015,9 @@ static void Azure_Process_Loop_Task(void *pvParameters)
                     ESP_LOGE("AZURE: PROCESS LOOP",
                              "ProcessLoop failed %d times consecutively – Socket likely hung. Restarting ESP32...",
                              s_processloop_fail_count);
-                    User_External_Flash_Log_Event("AZURE_RESTART", "ProcessLoop hung – safety restart");
+                    //User_External_Flash_Log_Event("AZURE_RESTART", "ProcessLoop hung – safety restart");
+                    // Bỏ qua ghi log Flash ở đây để tránh bị kẹt khóa Mutex SPIFFS khi reset khẩn cấp
+                    // User_External_Flash_Log_Event("AZURE_RESTART", "ProcessLoop hung – safety restart");
                     vTaskDelay(pdMS_TO_TICKS(500));
                     esp_restart();
                 }
@@ -1040,7 +1042,9 @@ static void Azure_Process_Loop_Task(void *pvParameters)
             if(s_processloop_mutex_fail_count >= 10)
             {
                 ESP_LOGE("AZURE: PROCESS LOOP", "Mutex Deadlock detected! Restarting ESP32...");
-                User_External_Flash_Log_Event("AZURE_RESTART", "Mutex deadlock – safety restart");
+                //User_External_Flash_Log_Event("AZURE_RESTART", "Mutex deadlock – safety restart");
+                // Bỏ qua ghi log Flash ở đây để tránh bị kẹt khóa Mutex SPIFFS khi reset khẩn cấp
+                // User_External_Flash_Log_Event("AZURE_RESTART", "Mutex deadlock – safety restart");
                 vTaskDelay(pdMS_TO_TICKS(500));
                 esp_restart();
             }
@@ -1104,6 +1108,7 @@ static void Azure_Transmit_Task(void *pvParameters)
                     IoTHubHandle.isAzureInitialized = false;
                 }
                 xSemaphoreGive(azureMutex);
+                vTaskDelay(pdMS_TO_TICKS(100)); // Delay nhường quyền cho Azure_Process_Loop_Task xử lý PUBACK
             }
             else
             {
@@ -1118,7 +1123,9 @@ static void Azure_Transmit_Task(void *pvParameters)
                     ESP_LOGE("AZURE: TRANSMIT TASK",
                              "Mutex Deadlock detected after %d attempts! Restarting ESP32...",
                              s_transmit_mutex_fail_count);
-                    User_External_Flash_Log_Event("AZURE_RESTART", "Transmit mutex deadlock – safety restart");
+                    //User_External_Flash_Log_Event("AZURE_RESTART", "Transmit mutex deadlock – safety restart");
+                    // Bỏ qua ghi log Flash ở đây để tránh bị kẹt khóa Mutex SPIFFS khi reset khẩn cấp
+                    // User_External_Flash_Log_Event("AZURE_RESTART", "Transmit mutex deadlock – safety restart");
                     if (telemetry.payload != NULL)
                     {
                         free(telemetry.payload);
@@ -2048,9 +2055,12 @@ void Azure_Handle_Direct_Method_Data(cJSON *payload, DirectMethodResponse_t *res
 
                 if(_deviceId == GROUP_3_DEVICE_ID_1)
                 {
-                    response->status = COMMAND_STATUS_BAD_REQUEST;
-                    snprintf(response->payload, sizeof(response->payload), "Ignore schedule for Feeder_1_M1");
-                    goto method_done;
+                    if (Sys_Info.feederMode == 0) // Chỉ bỏ qua ở chế độ 2 động cơ
+                    {
+                        response->status = COMMAND_STATUS_BAD_REQUEST;
+                        snprintf(response->payload, sizeof(response->payload), "Ignore schedule for Feeder_1_M1");
+                        goto method_done;
+                    }
                 }
 
                 Device_Parameters_t *dev = &DeviceHandle.Device[shift];

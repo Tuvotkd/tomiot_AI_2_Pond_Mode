@@ -230,6 +230,8 @@ esp_err_t status_get_handler(httpd_req_t *req)
         cJSON_AddStringToObject(device, "name", DeviceHandle.Device[i].name);
         cJSON_AddNumberToObject(device, "id", DeviceHandle.Device[i].id);
         cJSON_AddNumberToObject(device, "state", DeviceHandle.Device[i].state);
+        cJSON_AddBoolToObject(device, "isSchedulePaused", DeviceHandle.Device[i].isSchedulePaused);
+        cJSON_AddNumberToObject(device, "runtime", DeviceHandle.Device[i].runtime);
         cJSON_AddItemToArray(root, device);
     }
     char *json_str = cJSON_PrintUnformatted(root);

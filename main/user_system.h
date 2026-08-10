@@ -11,15 +11,15 @@
 #define START_OF_FRAME 0x02
 #define END_OF_FRAME    0x03
 
-#define SYS_SERVER_IP_DEFAULT   "192.168.1.100"
-#define SYS_SERVER_PORT_DEFAULT   3000
-#define SYS_WIFI_SSID_DEFAULT   "MebiOneIOT"
-#define SYS_WIFI_PASS_DEFAULT   "MebiOne@123"
+// #define SYS_SERVER_IP_DEFAULT   "192.168.1.100"
+// #define SYS_SERVER_PORT_DEFAULT   3000
+// #define SYS_WIFI_SSID_DEFAULT   "MebiOneIOT"
+// #define SYS_WIFI_PASS_DEFAULT   "MebiOne@123"
 
 
-#define SYS_IOT_HUB_HOST_NAME_DEFAULT           "VuIoTHub.azure-devices.net"
-#define SYS_IOT_HUB_DEVICE_ID_DEFAULT           "VuDevice"
-#define SYS_IOT_HUB_SYMMETRIC_KEY_DEFAULT       "xOw6BICGo79moY00yntL7ZTQ0eRZD3sICfOe+29qRr0="
+// #define SYS_IOT_HUB_HOST_NAME_DEFAULT           "VuIoTHub.azure-devices.net"
+// #define SYS_IOT_HUB_DEVICE_ID_DEFAULT           "VuDevice"
+// #define SYS_IOT_HUB_SYMMETRIC_KEY_DEFAULT       "xOw6BICGo79moY00yntL7ZTQ0eRZD3sICfOe+29qRr0="
 
 #define DEVICE_ID_GROUP_1_NUM1  11
 #define DEVICE_ID_GROUP_1_NUM2  12
@@ -46,17 +46,23 @@
 #define DEVICE_SPACE_LEN_IN_FRAM    512
 #define NUM_OF_DEVICE               12
 
-#define FRAM_FEEDER_MODE_ADDR       0x160A // 1 byte
-#define FRAM_FEEDER_ACTIVE_ID_ADDR  0x160B // 2 bytes
+#define FRAM_DEVICE_RUNTIMES_ADDR         0x1500 // 40 bytes: 10 devices * 4 bytes (uint32_t)
+#define FRAM_FEEDER_MODE_ADDR             0x160A // 1 byte
+#define FRAM_FEEDER_ACTIVE_ID_ADDR        0x160B // 2 bytes
 
-#define FRAM_OXY_MODE_ADDR          0x160C // 1 byte
-#define FRAM_OXY_ACTIVE_ID_ADDR     0x160D // 2 bytes
+#define FRAM_OXY_MODE_ADDR                0x160C // 1 byte
+#define FRAM_OXY_ACTIVE_ID_ADDR           0x160D // 2 bytes
 
-#define FRAM_POND_MODE_ADDR         0x1610 // 1 byte: 0 = Mode 10 thiết bị, 1 = Mode 4 thiết bị
-#define FRAM_VFD_ENABLED_ADDR       0x1611 // 1 byte: 0 = Vô hiệu hóa, 1 = Kích hoạt (mặc định)
-#define FRAM_PERF_MONITOR_ENABLED_ADDR 0x1612 // 1 byte: 0 = Tắt (mặc định), 1 = Bật
+#define FRAM_POND_MODE_ADDR               0x1610 // 1 byte: 0 = Mode 10 thiết bị, 1 = Mode 4 thiết bị
+#define FRAM_VFD_ENABLED_ADDR             0x1611 // 1 byte: 0 = Vô hiệu hóa, 1 = Kích hoạt (mặc định)
+#define FRAM_PERF_MONITOR_ENABLED_ADDR    0x1612 // 1 byte: 0 = Tắt (mặc định), 1 = Bật
 #define FRAM_CONSOLE_MONITOR_ENABLED_ADDR 0x1613 // 1 byte: 0 = Tắt (mặc định), 1 = Bật
-#define FRAM_IP_ADDR_ADDR           0x1620 // 16 bytes: IP address string format (e.g., "192.168.1.100")
+#define FRAM_RUNTIME_FILE_INDEX_ADDR      0x1614 // 1 byte: Chỉ số file hiện tại (1 -> 5)
+#define FRAM_RUNTIME_PACKET_COUNT_ADDR     0x1615 // 1 byte: Số gói tin đã ghi trong tuần (0 -> 6)
+#define FRAM_IP_ADDR_ADDR                 0x1620 // 16 bytes: IP address string format (e.g., "192.168.1.100")
+
+#define TELEMETRY_CODE_REPORT_RUNNING_TIME 301
+
 
 /**
  * @brief Chế độ ao nuôi: 10 thiết bị đầy đủ hoặc 4 thiết bị cơ bản
@@ -109,7 +115,7 @@ typedef enum {
 
 
 /* Define Telemetry queue length */
-#define TELEMETRY_QUEUE_LENGTH  20
+#define TELEMETRY_QUEUE_LENGTH  50
 
 typedef struct 
 {

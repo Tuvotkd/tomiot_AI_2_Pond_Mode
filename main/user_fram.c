@@ -20,7 +20,6 @@ const char *FRAM_TAG = "FRAM";
 
 uint8_t  cs_pin = 0;
 
-
 void spi_post_transfer_callback(spi_transaction_t *t)
 {
     uint8_t cs=*((uint8_t*)t->user);
@@ -38,15 +37,6 @@ void spi_pre_transfer_callback(spi_transaction_t *t)
 
 static bool spi_master_init() 
 {
-
-    // cs_pin = PIN_NUM_CS;
-    // gpio_reset_pin(PIN_NUM_CS);         //configures the IOMUX for this pin to the GPIO function
-
-    // gpio_set_pull_mode(PIN_NUM_CS, GPIO_PULLUP_ONLY);
-    // gpio_set_direction(PIN_NUM_CS, GPIO_MODE_OUTPUT);
-    // gpio_set_level(PIN_NUM_CS, 1);
-
-
     esp_err_t ret;
     spi_bus_config_t buscfg =
     {
@@ -74,23 +64,8 @@ static bool spi_master_init()
         // .post_cb = spi_post_transfer_callback,
     };
 
-
-    // gpio_set_pull_mode(PIN_NUM_MISO, GPIO_PULLUP_ONLY);
-    // gpio_set_pull_mode(PIN_NUM_MOSI, GPIO_PULLUP_ONLY);
-    // gpio_set_pull_mode(PIN_NUM_CLK, GPIO_PULLUP_ONLY);
-
-
-
     gpio_set_direction(PIN_NUM_WP, GPIO_MODE_OUTPUT);
     gpio_set_level(PIN_NUM_WP, 1);
-
-    // // Khởi tạo BUS SPI
-    // ret = spi_bus_initialize(SPI_HOST, &buscfg, SPI_DMA_CH_AUTO);
-    // ESP_ERROR_CHECK(ret);
-    // // Thêm thiết bị F-RAM vào BUS
-    // ret = spi_bus_add_device(SPI_HOST, &devcfg, &spiFram);
-    // ESP_ERROR_CHECK(ret);
-    // ESP_LOGI(FRAM_TAG, "SPI Master initialized successfully.");
 
      // Khởi tạo BUS SPI
     ret = spi_bus_initialize(SPI_HOST, &buscfg, SPI_DMA_CH_AUTO);

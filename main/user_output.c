@@ -221,6 +221,7 @@ void User_Device_Switch_Pond_Mode(uint8_t new_mode)
 
     // ─── Bước 4: Reboot để toàn bộ hệ thống khởi động lại sạch ───
     ESP_LOGW("POND_MODE", "Pond Mode switch complete. Rebooting ESP32...");
+    User_Device_Save_Runtimes_To_Fram();
     vTaskDelay(pdMS_TO_TICKS(500));
     esp_restart();
 }
@@ -354,6 +355,148 @@ void User_Device_Init(void)
     DeviceHandle.Device[8].isActived = true;
     DeviceHandle.Device[9].isActived = true;
 
+    // Đọc thời gian chạy tích lũy từ FRAM
+    uint32_t saved_runtimes[DEVICE_MAX_NUM] = {0};
+    if (Fram_Read_Data(FRAM_DEVICE_RUNTIMES_ADDR, (uint8_t *)saved_runtimes, sizeof(saved_runtimes)))
+    {
+        for (int i = 0; i < DEVICE_MAX_NUM; i++)
+        {
+            if (saved_runtimes[i] != 0xFFFFFFFF)
+            {
+                DeviceHandle.Device[i].runtime = saved_runtimes[i];
+            }
+            else
+            {
+                DeviceHandle.Device[i].runtime = 0;
+            }
+        }
+        ESP_LOGI("OUTPUT", "Restored device runtimes from FRAM");
+    }
+    else
+    {
+        for (int i = 0; i < DEVICE_MAX_NUM; i++)
+        {
+            DeviceHandle.Device[i].runtime = 0;
+        }
+        ESP_LOGE("OUTPUT", "Failed to read device runtimes from FRAM, defaulted to 0");
+    }
+}
+
+void User_Device_Save_Runtimes_To_Fram(void)
+{
+    uint32_t runtimes[DEVICE_MAX_NUM] = {0};
+    for (int i = 0; i < DEVICE_MAX_NUM; i++)
+    {
+        runtimes[i] = DeviceHandle.Device[i].runtime;
+    }
+    Fram_Write_Data(FRAM_DEVICE_RUNTIMES_ADDR, (uint8_t *)runtimes, sizeof(runtimes));
+    ESP_LOGI("OUTPUT", "Saved device runtimes to FRAM");
+}
+
+void User_Device_Report_Daily_Runtimes_And_Reset(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    if (root == NULL)
+    {
+        ESP_LOGE("RUNTIME REPORT", "Failed to create JSON root object");
+        return;
+    }
+
+    cJSON_AddNumberToObject(root, "Code", TELEMETRY_CODE_REPORT_RUNNING_TIME);
+    cJSON_AddNumberToObject(root, "TimeStamp", (double)Sys_Info.epochtime);
+
+    cJSON *dataArray = cJSON_CreateArray();
+    if (dataArray != NULL)
+    {
+        for (int i = 0; i < DEVICE_MAX_NUM; i++)
+        {
+            if (DeviceHandle.Device[i].isActived)
+            {
+                cJSON *device = cJSON_CreateObject();
+                if (device != NULL)
+                {
+                    cJSON_AddNumberToObject(device, "DeviceId", DeviceHandle.Device[i].id);
+                    cJSON_AddStringToObject(device, "DeviceName", DeviceHandle.Device[i].name);
+                    cJSON_AddNumberToObject(device, "RunningTime", DeviceHandle.Device[i].runtime);
+                    cJSON_AddItemToArray(dataArray, device);
+                }
+            }
+        }
+        cJSON_AddItemToObject(root, "DeviceData", dataArray);
+    }
+
+    char *json_str = cJSON_PrintUnformatted(root);
+    if (json_str != NULL)
+    {
+        // 1. Gửi gói tin lên Azure IoT Hub
+        PushTelemetry(json_str);
+        ESP_LOGI("RUNTIME REPORT", "Pushed daily running time report (Code 301) to Azure queue");
+
+        // 2. Lưu vào phân vùng Flash ngoại vi (/web/rt_history_X.txt) xoay vòng
+        uint8_t file_index = 1;
+        uint8_t packet_count = 0;
+        Fram_Read_Data(FRAM_RUNTIME_FILE_INDEX_ADDR, &file_index, 1);
+        Fram_Read_Data(FRAM_RUNTIME_PACKET_COUNT_ADDR, &packet_count, 1);
+
+        if (file_index < 1 || file_index > 5)
+        {
+            file_index = 1;
+        }
+        if (packet_count > 6)
+        {
+            packet_count = 0;
+        }
+
+        char log_filepath[64];
+        snprintf(log_filepath, sizeof(log_filepath), "/web/rt_history_%d.txt", file_index);
+
+        FILE *f = NULL;
+        if (packet_count == 0)
+        {
+            f = fopen(log_filepath, "w");
+        }
+        else
+        {
+            f = fopen(log_filepath, "a");
+        }
+
+        if (f != NULL)
+        {
+            fprintf(f, "%s\n", json_str);
+            fclose(f);
+            ESP_LOGI("RUNTIME REPORT", "Logged runtime history to SPI Flash: %s (packet %d)", log_filepath, packet_count + 1);
+        }
+        else
+        {
+            ESP_LOGE("RUNTIME REPORT", "Failed to open SPI Flash file '%s'", log_filepath);
+        }
+
+        // Tăng đếm và xoay vòng
+        packet_count++;
+        if (packet_count >= 7)
+        {
+            packet_count = 0;
+            file_index++;
+            if (file_index > 5)
+            {
+                file_index = 1;
+            }
+        }
+
+        Fram_Write_Data(FRAM_RUNTIME_FILE_INDEX_ADDR, &file_index, 1);
+        Fram_Write_Data(FRAM_RUNTIME_PACKET_COUNT_ADDR, &packet_count, 1);
+
+        free(json_str);
+    }
+    cJSON_Delete(root);
+
+    // 3. Reset thời gian chạy trong ngày về 0
+    for (int i = 0; i < DEVICE_MAX_NUM; i++)
+    {
+        DeviceHandle.Device[i].runtime = 0;
+    }
+    User_Device_Save_Runtimes_To_Fram();
+    ESP_LOGI("RUNTIME REPORT", "Daily runtimes reset to 0 in RAM and FRAM");
 }
 
 void User_Device_Report(void)
@@ -1516,6 +1659,7 @@ void IO_Driver_Task(void)
     {
         if(Sys_Info.isRebootRequested && ((xTaskGetTickCount() - Sys_Info.rebootTimestamp) >= pdMS_TO_TICKS(5000)))
         {
+            User_Device_Save_Runtimes_To_Fram(); // Lưu giờ chạy trước khi reboot
             ESP_LOGW("SYSTEM", "Auto-rebooting to apply configurations...");
             esp_restart();
         }
@@ -1534,6 +1678,7 @@ void IO_Driver_Task(void)
             if(diff >= pdMS_TO_TICKS(300000)) // 5 phút
             {
                 ESP_LOGE("SYSTEM", "WiFi disconnected for 5 minutes. Writing reset flag to FRAM and resetting ESP...");
+                User_Device_Save_Runtimes_To_Fram(); // Lưu giờ chạy trước khi reset
                 // Ghi cờ reset vào FRAM địa chỉ 0x1608 trước khi reset
                 uint8_t flag = 1;
                 Fram_Write_Data(0x1608, &flag, 1);
@@ -1561,6 +1706,7 @@ void IO_Driver_Task(void)
             if(azure_diff >= pdMS_TO_TICKS(300000)) // 5 phút
             {
                 ESP_LOGE("SYSTEM", "Azure failed to reconnect for 5 min (WiFi is up). Restarting...");
+                User_Device_Save_Runtimes_To_Fram(); // Lưu giờ chạy trước khi reset
                 uint8_t flag = 2; // Code 2 = Azure watchdog reset
                 Fram_Write_Data(0x1608, &flag, 1);
                 esp_restart();
@@ -1632,6 +1778,48 @@ void IO_Driver_Task(void)
 
         User_Output_Polling(&DeviceHandle);
 
+        // ─── ĐẾM THỜI GIAN CHẠY MỖI 1 GIÂY ───
+        static TickType_t last_runtime_tick = 0;
+        if (last_runtime_tick == 0)
+        {
+            last_runtime_tick = xTaskGetTickCount();
+        }
+        else if ((xTaskGetTickCount() - last_runtime_tick) >= pdMS_TO_TICKS(1000))
+        {
+            uint32_t elapsed = (xTaskGetTickCount() - last_runtime_tick) / pdMS_TO_TICKS(1000);
+            last_runtime_tick = xTaskGetTickCount();
+            
+            for (int i = 0; i < DEVICE_MAX_NUM; i++)
+            {
+                if (DeviceHandle.Device[i].isActived && DeviceHandle.Device[i].state == DEVICE_STATE_ON)
+                {
+                    DeviceHandle.Device[i].runtime += elapsed;
+                }
+            }
+        }
+
+        // ─── KIỂM TRA MỐC GIỜ 23:59:59 ĐỂ RESET VÀ GỬI BÁO CÁO DAILY ───
+        static bool daily_reported = false;
+        if (Sys_Info.isTimeSync)
+        {
+            time_t now_time = Sys_Info.epochtime;
+            struct tm timeinfo;
+            localtime_r(&now_time, &timeinfo);
+            
+            if (timeinfo.tm_hour == 23 && timeinfo.tm_min == 59 && timeinfo.tm_sec >= 55)
+            {
+                if (!daily_reported)
+                {
+                    daily_reported = true;
+                    User_Device_Report_Daily_Runtimes_And_Reset();
+                }
+            }
+            else
+            {
+                daily_reported = false;
+            }
+        }
+
         /* Lưu lại trạng thái ra FRAM nếu có sự thay đổi (để phục hồi lại sau khi ngắt điện).
          * Chỉ bắt đầu ghi sau khi hết giai đoạn bảo vệ khởi động (10s) để tránh cảm biến
          * I2C chưa ổn định hoặc lịch trình hết hạn ghi đè mất trạng thái cũ. */
@@ -1646,6 +1834,20 @@ void IO_Driver_Task(void)
         {
             last_saved_outputBuf = DeviceHandle.outputBuf;
             Fram_Write_Data(0x1600, (uint8_t *)&DeviceHandle.outputBuf, sizeof(uint32_t));
+            // Lưu ngay lập tức khi thiết bị bật/tắt để không mất dữ liệu chạy
+            User_Device_Save_Runtimes_To_Fram();
+        }
+
+        // ─── TỰ ĐỘNG LƯU ĐỊNH KỲ 60 GIÂY VÀO FRAM ───
+        static TickType_t last_runtime_save_tick = 0;
+        if (last_runtime_save_tick == 0)
+        {
+            last_runtime_save_tick = xTaskGetTickCount();
+        }
+        else if (startup_done && (xTaskGetTickCount() - last_runtime_save_tick) >= pdMS_TO_TICKS(60000))
+        {
+            last_runtime_save_tick = xTaskGetTickCount();
+            User_Device_Save_Runtimes_To_Fram();
         }
 
         static uint32_t last_saved_fault_states = 0xFFFFFFFF;

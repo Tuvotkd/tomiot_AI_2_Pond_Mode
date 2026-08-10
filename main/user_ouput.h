@@ -133,6 +133,7 @@ typedef struct __attribute__((packed))
     uint8_t index;
     uint32_t weight;
     char name[32];
+    uint32_t runtime;        // Daily runtime in seconds
     uint8_t scheduleCount;
     uint8_t scheduleIndex;
     Device_Schedule_t schedules[DEVICE_SCHEDULE_MAX];
@@ -193,6 +194,9 @@ void User_Output_Deploy(Device_Handle_t *handle);
 void IO_Driver_Task(void);
 
 void User_Feeder_M2_Manual_Control(bool on);
+
+void User_Device_Save_Runtimes_To_Fram(void);
+void User_Device_Report_Daily_Runtimes_And_Reset(void);
 
 void User_Device_Init(void);
 void User_Device_Report(void);
