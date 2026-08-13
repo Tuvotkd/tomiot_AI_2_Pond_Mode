@@ -1084,6 +1084,8 @@ static void Azure_Transmit_Task(void *pvParameters)
     {
         if (xQueueReceive(xQueueTelemetry, &telemetry, 0) == pdTRUE)
         {
+            ESP_LOGI("AZURE: TRANSMIT TASK", "Popped telemetry from queue to transmit. Queue waiting: %d/%d",
+                     (int)uxQueueMessagesWaiting(xQueueTelemetry), TELEMETRY_QUEUE_LENGTH);
             if(!Is_System_Internet_Connected() || !IoTHubHandle.isAzureInitialized || IoTHubHandle.isNeedReinit)
             {
                 /* Đây là trạng thái bình thường khi mất mạng/reconnecting → reset bộ đếm deadlock */
@@ -1173,6 +1175,8 @@ BaseType_t PushTelemetry(const char *payload)
 
         if (xQueueSend(xQueueTelemetry, &event, 0) == pdPASS)
         {
+            ESP_LOGI("AZURE: PUSH TELEMETRY", "Pushed to queue. Queue waiting: %d/%d", 
+                     (int)uxQueueMessagesWaiting(xQueueTelemetry), TELEMETRY_QUEUE_LENGTH);
             return pdPASS;
         }
         else
@@ -1180,7 +1184,8 @@ BaseType_t PushTelemetry(const char *payload)
             TelemetryEvent_t discarded_event;
             if (xQueueReceive(xQueueTelemetry, &discarded_event, 0) == pdTRUE)
             {
-                ESP_LOGW("AZURE:", "Telemetry queue full, dropped oldest message to fit new one");
+                ESP_LOGW("AZURE: PUSH TELEMETRY", "Telemetry queue full, dropped oldest message to fit new one. Queue waiting: %d/%d",
+                         (int)uxQueueMessagesWaiting(xQueueTelemetry), TELEMETRY_QUEUE_LENGTH);
                 if (discarded_event.payload != NULL)
                 {
                     free(discarded_event.payload);
@@ -1191,6 +1196,8 @@ BaseType_t PushTelemetry(const char *payload)
                 free(event.payload);
                 return pdFAIL;
             }
+            ESP_LOGI("AZURE: PUSH TELEMETRY", "Pushed to queue (after drop). Queue waiting: %d/%d", 
+                     (int)uxQueueMessagesWaiting(xQueueTelemetry), TELEMETRY_QUEUE_LENGTH);
             return pdPASS;
         }
     }
