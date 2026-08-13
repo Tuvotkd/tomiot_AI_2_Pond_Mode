@@ -201,6 +201,8 @@ void User_Device_Report_Daily_Runtimes_And_Reset(void);
 extern double vfd_last_cumulative_energy;
 extern double vfd_daily_energy;
 
+void Update_Vfd_Energy(double current_cumulative);
+
 void User_Device_Init(void);
 void User_Device_Report(void);
 
