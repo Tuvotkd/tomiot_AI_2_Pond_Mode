@@ -1798,27 +1798,7 @@ void IO_Driver_Task(void)
             }
         }
 
-        // ─── KIỂM TRA MỐC GIỜ 23:59:59 ĐỂ RESET VÀ GỬI BÁO CÁO DAILY ───
-        static bool daily_reported = false;
-        if (Sys_Info.isTimeSync)
-        {
-            time_t now_time = Sys_Info.epochtime;
-            struct tm timeinfo;
-            localtime_r(&now_time, &timeinfo);
-            
-            if (timeinfo.tm_hour == 23 && timeinfo.tm_min == 59 && timeinfo.tm_sec >= 55)
-            {
-                if (!daily_reported)
-                {
-                    daily_reported = true;
-                    User_Device_Report_Daily_Runtimes_And_Reset();
-                }
-            }
-            else
-            {
-                daily_reported = false;
-            }
-        }
+
 
         /* Lưu lại trạng thái ra FRAM nếu có sự thay đổi (để phục hồi lại sau khi ngắt điện).
          * Chỉ bắt đầu ghi sau khi hết giai đoạn bảo vệ khởi động (10s) để tránh cảm biến

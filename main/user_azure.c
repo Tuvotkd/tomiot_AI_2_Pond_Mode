@@ -2540,6 +2540,18 @@ void Azure_Handle_Direct_Method_Data(cJSON *payload, DirectMethodResponse_t *res
             }
         }
 
+        else if(_code == CDM_CODE_REQUEST_RUNNING_TIME_DEVICE) // code == 116
+        {
+            ESP_LOGI("AZURE", "---------- REQUEST RUNNING TIME DEVICE (116) ----------");
+            
+            User_Device_Report_Daily_Runtimes_And_Reset();
+            
+            response->status = COMMAND_STATUS_OK;
+            response->payloadLength = snprintf(response->payload, sizeof(response->payload), 
+                                               "Daily running time report triggered successfully");
+            ESP_LOGI("AZURE", "Daily running time report (Code 301) triggered and runtimes reset to 0");
+        }
+
         else if(_code == CMD_CODE_OXY_POND) // code == 114
         {
             ESP_LOGI("AZURE", "---------- CONFIGURE OXY MODE (114) ----------");

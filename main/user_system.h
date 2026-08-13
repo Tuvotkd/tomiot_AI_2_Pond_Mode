@@ -88,6 +88,7 @@ typedef enum {
 #define CMD_CODE_SET_TIME_OF_VFD_REPORT     113
 #define CMD_CODE_OXY_POND                   114
 #define CMD_CODE_FEEDER_CONTACTOR_POND      115
+#define CDM_CODE_REQUEST_RUNNING_TIME_DEVICE 116
 
 #define CMD_CODE_UPDATE_FIRMWARE            501
 #define CMD_CODE_ASK_VERSION                502
