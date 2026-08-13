@@ -295,6 +295,8 @@ esp_err_t vfd_get_handler(httpd_req_t *req)
     
     if (ret == RS485_OK)
     {
+        Update_Vfd_Energy(vfd_status.cumulative_energy_kwh);
+
         cJSON_AddBoolToObject(root, "connected", true);
         cJSON_AddStringToObject(root, "mode", (vfd_status.run_command_channel == 2) ? "auto" : "manual");
         cJSON_AddBoolToObject(root, "running", vfd_status.is_running);
@@ -313,12 +315,20 @@ esp_err_t vfd_get_handler(httpd_req_t *req)
         cJSON_AddNumberToObject(root, "output_power", round(vfd_status.output_power_pct * 10.0) / 10.0);
         cJSON_AddBoolToObject(root, "auto_run_enable", vfd_status.auto_run_enable == 1);
         cJSON_AddNumberToObject(root, "auto_run_delay", round(vfd_status.auto_run_delay_s * 10.0) / 10.0);
+
+        cJSON_AddNumberToObject(root, "vfd_last_energy", round(vfd_last_cumulative_energy * 10.0) / 10.0);
+        cJSON_AddNumberToObject(root, "vfd_daily_energy", round(vfd_daily_energy * 10.0) / 10.0);
+        cJSON_AddNumberToObject(root, "vfd_total_energy", round(vfd_status.cumulative_energy_kwh * 10.0) / 10.0);
     }
     else
     {
         cJSON_AddBoolToObject(root, "connected", false);
         cJSON_AddNumberToObject(root, "error_code", (int)ret);
         cJSON_AddStringToObject(root, "message", "485 cable breakage or VFD power loss");
+
+        cJSON_AddNumberToObject(root, "vfd_last_energy", round(vfd_last_cumulative_energy * 10.0) / 10.0);
+        cJSON_AddNumberToObject(root, "vfd_daily_energy", round(vfd_daily_energy * 10.0) / 10.0);
+        cJSON_AddNumberToObject(root, "vfd_total_energy", -1.0);
     }
     
     char *json_str = cJSON_PrintUnformatted(root);
@@ -432,6 +442,14 @@ esp_err_t fram_map_get_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(runtimeBlock, "size", 40);
     cJSON_AddStringToObject(runtimeBlock, "type", "runtime");
     cJSON_AddItemToArray(blocks, runtimeBlock);
+
+    /* 3.2. VFD Daily & Last Cumulative Energy block (0x15A8 - 0x15B7) */
+    cJSON *vfdEnergyBlock = cJSON_CreateObject();
+    cJSON_AddStringToObject(vfdEnergyBlock, "name", "VFD Daily & Cumulative Energy");
+    cJSON_AddStringToObject(vfdEnergyBlock, "addr", "0x15A8 - 0x15B7");
+    cJSON_AddNumberToObject(vfdEnergyBlock, "size", 16);
+    cJSON_AddStringToObject(vfdEnergyBlock, "type", "energy");
+    cJSON_AddItemToArray(blocks, vfdEnergyBlock);
 
     /* 4. System States & Modes block (0x1600 - 0x1615) */
     cJSON *sysBlock = cJSON_CreateObject();

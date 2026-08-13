@@ -192,6 +192,7 @@ typedef struct
     uint16_t run_command_channel; ///< Kênh lệnh chạy (P00.01)
     uint16_t auto_run_enable;   ///< P01.21: 0 = Vô hiệu hóa, 1 = Kích hoạt
     double   auto_run_delay_s;  ///< P01.22: Thời gian trễ tự khởi động lại (s)
+    double   cumulative_energy_kwh; ///< Điện năng tiêu thụ tích luỹ (kWh)
 } GD200A_Status_t;
 
 /* ============================================================

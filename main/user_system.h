@@ -47,6 +47,8 @@
 #define NUM_OF_DEVICE               12
 
 #define FRAM_DEVICE_RUNTIMES_ADDR         0x1580 // 40 bytes: 10 devices * 4 bytes (uint32_t)
+#define FRAM_VFD_LAST_CUMULATIVE_ENERGY_ADDR 0x15A8 // 8 bytes: double (chốt điện năng tích lũy cuối ngày cũ)
+#define FRAM_VFD_DAILY_ENERGY_ADDR        0x15B0 // 8 bytes: double (lượng điện tiêu thụ trong ngày)
 #define FRAM_FEEDER_MODE_ADDR             0x160A // 1 byte
 #define FRAM_FEEDER_ACTIVE_ID_ADDR        0x160B // 2 bytes
 

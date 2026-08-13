@@ -501,6 +501,18 @@ RS485_Status_t GD200A_ReadStatus(uint8_t slave_addr, GD200A_Status_t *status)
         status->auto_run_delay_s = 0.0;
     }
 
+    /* Đọc thêm điện năng tiêu thụ tích luỹ P07.15 (0x070F) và P07.16 (0x0710) */
+    uint16_t energy_regs[2] = {0};
+    RS485_Status_t energy_ret = Modbus_ReadRegisters(slave_addr, 0x070F, 2, energy_regs);
+    if (energy_ret == RS485_OK)
+    {
+        status->cumulative_energy_kwh = (double)energy_regs[0] * 1000.0 + (double)energy_regs[1] / 10.0;
+    }
+    else
+    {
+        status->cumulative_energy_kwh = -1.0;
+    }
+
     return RS485_OK;
 }
 
