@@ -197,8 +197,9 @@ void User_Feeder_M2_Manual_Control(bool on);
 
 void User_Device_Save_Runtimes_To_Fram(void);
 void User_Device_Report_Daily_Runtimes_And_Reset(void);
+void User_Device_Ack_Daily_Runtimes(void);
 
-extern double vfd_last_cumulative_energy;
+extern double vfd_last_energy;
 extern double vfd_daily_energy;
 
 void Update_Vfd_Energy(double current_cumulative);

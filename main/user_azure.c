@@ -2549,7 +2549,19 @@ void Azure_Handle_Direct_Method_Data(cJSON *payload, DirectMethodResponse_t *res
             response->status = COMMAND_STATUS_OK;
             response->payloadLength = snprintf(response->payload, sizeof(response->payload), 
                                                "Daily running time report triggered successfully");
-            ESP_LOGI("AZURE", "Daily running time report (Code 301) triggered and runtimes reset to 0");
+            ESP_LOGI("AZURE", "Daily running time report (Code 301) triggered and snapshot saved in FRAM");
+        }
+
+        else if(_code == CMD_CODE_CONFIRM_RECIEVE_301) // code == 117
+        {
+            ESP_LOGI("AZURE", "---------- CONFIRM RECEIVE 301 (117) ----------");
+            
+            User_Device_Ack_Daily_Runtimes();
+            
+            response->status = COMMAND_STATUS_OK;
+            response->payloadLength = snprintf(response->payload, sizeof(response->payload), 
+                                               "Daily report ACK processed successfully");
+            ESP_LOGI("AZURE", "Daily report ACK processed and reported values subtracted");
         }
 
         else if(_code == CMD_CODE_OXY_POND) // code == 114

@@ -52,7 +52,7 @@ static uint32_t device_fault_states = 0;
 bool isManualFeeder_M2 = false;
 uint32_t zeroScale = 389860;
 
-double vfd_last_cumulative_energy = 0.0;
+double vfd_last_energy = 0.0;
 double vfd_daily_energy = 0.0;
 
 uint32_t zero500 = 488850;
@@ -385,10 +385,10 @@ void User_Device_Init(void)
     }
 
     // Đọc thông số điện năng tiêu thụ từ FRAM
-    if (!Fram_Read_Data(FRAM_VFD_LAST_CUMULATIVE_ENERGY_ADDR, (uint8_t *)&vfd_last_cumulative_energy, sizeof(double)) ||
-        isnan(vfd_last_cumulative_energy) || vfd_last_cumulative_energy < 0.0 || vfd_last_cumulative_energy > 100000000.0)
+    if (!Fram_Read_Data(FRAM_vfd_last_energy_ADDR, (uint8_t *)&vfd_last_energy, sizeof(double)) ||
+        isnan(vfd_last_energy) || vfd_last_energy < 0.0 || vfd_last_energy > 100000000.0)
     {
-        vfd_last_cumulative_energy = 0.0;
+        vfd_last_energy = 0.0;
     }
     if (!Fram_Read_Data(FRAM_VFD_DAILY_ENERGY_ADDR, (uint8_t *)&vfd_daily_energy, sizeof(double)) ||
         isnan(vfd_daily_energy) || vfd_daily_energy < 0.0 || vfd_daily_energy > 100000.0)
@@ -396,7 +396,7 @@ void User_Device_Init(void)
         vfd_daily_energy = 0.0;
     }
     ESP_LOGI("OUTPUT", "Restored VFD energy from FRAM: LastCumulative = %.1f kWh, Daily = %.1f kWh",
-             vfd_last_cumulative_energy, vfd_daily_energy);
+             vfd_last_energy, vfd_daily_energy);
 }
 
 void User_Device_Save_Runtimes_To_Fram(void)
@@ -414,19 +414,32 @@ void Update_Vfd_Energy(double current_cumulative)
 {
     if (current_cumulative >= 0.0)
     {
-        if (vfd_last_cumulative_energy <= 0.0 || current_cumulative < vfd_last_cumulative_energy)
+        if (vfd_last_energy <= 0.0 || current_cumulative < vfd_last_energy)
         {
-            vfd_last_cumulative_energy = current_cumulative;
-            Fram_Write_Data(FRAM_VFD_LAST_CUMULATIVE_ENERGY_ADDR, (uint8_t *)&vfd_last_cumulative_energy, sizeof(double));
+            vfd_last_energy = current_cumulative;
+            Fram_Write_Data(FRAM_vfd_last_energy_ADDR, (uint8_t *)&vfd_last_energy, sizeof(double));
         }
         
-        vfd_daily_energy = current_cumulative - vfd_last_cumulative_energy;
+        vfd_daily_energy = current_cumulative - vfd_last_energy;
         Fram_Write_Data(FRAM_VFD_DAILY_ENERGY_ADDR, (uint8_t *)&vfd_daily_energy, sizeof(double));
     }
 }
 
 void User_Device_Report_Daily_Runtimes_And_Reset(void)
 {
+    // 1. Tạo snapshot (backup)
+    double backup_vfd_energy = vfd_daily_energy;
+    uint32_t backup_runtimes[DEVICE_MAX_NUM];
+    for (int i = 0; i < DEVICE_MAX_NUM; i++)
+    {
+        backup_runtimes[i] = DeviceHandle.Device[i].runtime;
+    }
+    
+    // Lưu snapshot vào FRAM
+    Fram_Write_Data(FRAM_BACKUP_RUNTIMES_ADDR, (uint8_t *)backup_runtimes, sizeof(backup_runtimes));
+    Fram_Write_Data(FRAM_BACKUP_VFD_DAILY_ENERGY_ADDR, (uint8_t *)&backup_vfd_energy, sizeof(double));
+    ESP_LOGI("RUNTIME REPORT", "Created daily runtimes and VFD energy backup snapshot in FRAM");
+
     cJSON *root = cJSON_CreateObject();
     if (root == NULL)
     {
@@ -449,7 +462,7 @@ void User_Device_Report_Daily_Runtimes_And_Reset(void)
                 {
                     cJSON_AddNumberToObject(device, "DeviceId", DeviceHandle.Device[i].id);
                     cJSON_AddStringToObject(device, "DeviceName", DeviceHandle.Device[i].name);
-                    cJSON_AddNumberToObject(device, "RunningTime", DeviceHandle.Device[i].runtime);
+                    cJSON_AddNumberToObject(device, "RunningTime", backup_runtimes[i]);
                     cJSON_AddItemToArray(dataArray, device);
                 }
             }
@@ -460,7 +473,7 @@ void User_Device_Report_Daily_Runtimes_And_Reset(void)
     // Thêm lượng điện tiêu thụ trong ngày vào gói Code 301
     if (Sys_Info.vfdEnabled == 1)
     {
-        cJSON_AddNumberToObject(root, "VfdDailyEnergy", round(vfd_daily_energy * 10.0) / 10.0);
+        cJSON_AddNumberToObject(root, "VfdDailyEnergy", round(backup_vfd_energy * 10.0) / 10.0);
     }
 
     char *json_str = cJSON_PrintUnformatted(root);
@@ -527,30 +540,63 @@ void User_Device_Report_Daily_Runtimes_And_Reset(void)
         free(json_str);
     }
     cJSON_Delete(root);
+}
 
-    // 3. Reset thời gian chạy trong ngày về 0
+void User_Device_Ack_Daily_Runtimes(void)
+{
+    uint32_t backup_runtimes[DEVICE_MAX_NUM] = {0};
+    double backup_vfd_energy = 0.0;
+    
+    // 1. Đọc snapshot từ FRAM
+    bool read_runtimes = Fram_Read_Data(FRAM_BACKUP_RUNTIMES_ADDR, (uint8_t *)backup_runtimes, sizeof(backup_runtimes));
+    bool read_energy = Fram_Read_Data(FRAM_BACKUP_VFD_DAILY_ENERGY_ADDR, (uint8_t *)&backup_vfd_energy, sizeof(double));
+    
+    if (!read_runtimes || !read_energy || isnan(backup_vfd_energy) || backup_vfd_energy < 0.0 || backup_vfd_energy > 100000.0)
+    {
+        ESP_LOGE("RUNTIME REPORT", "ACK 117 failed: Invalid backup data in FRAM");
+        return;
+    }
+    
+    // 2. Trừ bớt lượng thời gian chạy đã gửi thành công từ chỉ số active hiện tại
     for (int i = 0; i < DEVICE_MAX_NUM; i++)
     {
-        DeviceHandle.Device[i].runtime = 0;
+        if (DeviceHandle.Device[i].runtime >= backup_runtimes[i])
+        {
+            DeviceHandle.Device[i].runtime -= backup_runtimes[i];
+        }
+        else
+        {
+            DeviceHandle.Device[i].runtime = 0;
+        }
     }
-    User_Device_Save_Runtimes_To_Fram();
-    ESP_LOGI("RUNTIME REPORT", "Daily runtimes reset to 0 in RAM and FRAM");
-
-    // 4. Reset lượng điện tiêu thụ hàng ngày và chốt số mới
-    GD200A_Status_t vfd_status;
-    if (Sys_Info.vfdEnabled == 1 && GD200A_ReadStatus(GD200A_SLAVE_ADDR, &vfd_status) == RS485_OK && vfd_status.cumulative_energy_kwh >= 0.0)
+    User_Device_Save_Runtimes_To_Fram(); // Lưu active runtimes mới xuống FRAM
+    
+    // 3. Điều chỉnh chỉ số điện năng tiêu thụ
+    if (Sys_Info.vfdEnabled == 1 && backup_vfd_energy > 0.0)
     {
-        vfd_last_cumulative_energy = vfd_status.cumulative_energy_kwh;
+        // Chốt điện năng tích lũy ngày cũ tiến lên bằng chỉ số của lượng điện đã ack
+        vfd_last_energy += backup_vfd_energy;
+        Fram_Write_Data(FRAM_vfd_last_energy_ADDR, (uint8_t *)&vfd_last_energy, sizeof(double));
+        
+        // Trừ lượng điện tiêu thụ trong ngày hiện tại
+        if (vfd_daily_energy >= backup_vfd_energy)
+        {
+            vfd_daily_energy -= backup_vfd_energy;
+        }
+        else
+        {
+            vfd_daily_energy = 0.0;
+        }
+        Fram_Write_Data(FRAM_VFD_DAILY_ENERGY_ADDR, (uint8_t *)&vfd_daily_energy, sizeof(double));
     }
-    else
-    {
-        vfd_last_cumulative_energy += vfd_daily_energy;
-    }
-    Fram_Write_Data(FRAM_VFD_LAST_CUMULATIVE_ENERGY_ADDR, (uint8_t *)&vfd_last_cumulative_energy, sizeof(double));
-
-    vfd_daily_energy = 0.0;
-    Fram_Write_Data(FRAM_VFD_DAILY_ENERGY_ADDR, (uint8_t *)&vfd_daily_energy, sizeof(double));
-    ESP_LOGI("RUNTIME REPORT", "VFD daily energy reset to 0 in RAM and FRAM. New chốt: %.1f kWh", vfd_last_cumulative_energy);
+    
+    // 4. Reset snapshot lưu trong FRAM về 0
+    memset(backup_runtimes, 0, sizeof(backup_runtimes));
+    double zero_val = 0.0;
+    Fram_Write_Data(FRAM_BACKUP_RUNTIMES_ADDR, (uint8_t *)backup_runtimes, sizeof(backup_runtimes));
+    Fram_Write_Data(FRAM_BACKUP_VFD_DAILY_ENERGY_ADDR, (uint8_t *)&zero_val, sizeof(double));
+    
+    ESP_LOGI("RUNTIME REPORT", "Processed ACK 117: Reset reported daily runtimes and VFD energy");
 }
 
 void User_Device_Report(void)

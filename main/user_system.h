@@ -47,8 +47,10 @@
 #define NUM_OF_DEVICE               12
 
 #define FRAM_DEVICE_RUNTIMES_ADDR         0x1580 // 40 bytes: 10 devices * 4 bytes (uint32_t)
-#define FRAM_VFD_LAST_CUMULATIVE_ENERGY_ADDR 0x15A8 // 8 bytes: double (chốt điện năng tích lũy cuối ngày cũ)
+#define FRAM_vfd_last_energy_ADDR 0x15A8 // 8 bytes: double (chốt điện năng tích lũy cuối ngày cũ)
 #define FRAM_VFD_DAILY_ENERGY_ADDR        0x15B0 // 8 bytes: double (lượng điện tiêu thụ trong ngày)
+#define FRAM_BACKUP_RUNTIMES_ADDR         0x15B8 // 40 bytes: snapshot of daily runtimes during Code 116
+#define FRAM_BACKUP_VFD_DAILY_ENERGY_ADDR 0x15E0 // 8 bytes: double: snapshot of daily VFD energy during Code 116
 #define FRAM_FEEDER_MODE_ADDR             0x160A // 1 byte
 #define FRAM_FEEDER_ACTIVE_ID_ADDR        0x160B // 2 bytes
 
@@ -91,6 +93,7 @@ typedef enum {
 #define CMD_CODE_OXY_POND                   114
 #define CMD_CODE_FEEDER_CONTACTOR_POND      115
 #define CDM_CODE_REQUEST_RUNNING_TIME_DEVICE 116
+#define CMD_CODE_CONFIRM_RECIEVE_301        117
 
 #define CMD_CODE_UPDATE_FIRMWARE            501
 #define CMD_CODE_ASK_VERSION                502

@@ -316,7 +316,7 @@ esp_err_t vfd_get_handler(httpd_req_t *req)
         cJSON_AddBoolToObject(root, "auto_run_enable", vfd_status.auto_run_enable == 1);
         cJSON_AddNumberToObject(root, "auto_run_delay", round(vfd_status.auto_run_delay_s * 10.0) / 10.0);
 
-        cJSON_AddNumberToObject(root, "vfd_last_energy", round(vfd_last_cumulative_energy * 10.0) / 10.0);
+        cJSON_AddNumberToObject(root, "vfd_last_energy", round(vfd_last_energy * 10.0) / 10.0);
         cJSON_AddNumberToObject(root, "vfd_daily_energy", round(vfd_daily_energy * 10.0) / 10.0);
         cJSON_AddNumberToObject(root, "vfd_total_energy", round(vfd_status.cumulative_energy_kwh * 10.0) / 10.0);
     }
@@ -326,7 +326,7 @@ esp_err_t vfd_get_handler(httpd_req_t *req)
         cJSON_AddNumberToObject(root, "error_code", (int)ret);
         cJSON_AddStringToObject(root, "message", "485 cable breakage or VFD power loss");
 
-        cJSON_AddNumberToObject(root, "vfd_last_energy", round(vfd_last_cumulative_energy * 10.0) / 10.0);
+        cJSON_AddNumberToObject(root, "vfd_last_energy", round(vfd_last_energy * 10.0) / 10.0);
         cJSON_AddNumberToObject(root, "vfd_daily_energy", round(vfd_daily_energy * 10.0) / 10.0);
         cJSON_AddNumberToObject(root, "vfd_total_energy", -1.0);
     }
@@ -450,6 +450,14 @@ esp_err_t fram_map_get_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(vfdEnergyBlock, "size", 16);
     cJSON_AddStringToObject(vfdEnergyBlock, "type", "energy");
     cJSON_AddItemToArray(blocks, vfdEnergyBlock);
+
+    /* 3.3. Backup Daily Runtimes & VFD Energy block (0x15B8 - 0x15E7) */
+    cJSON *backupBlock = cJSON_CreateObject();
+    cJSON_AddStringToObject(backupBlock, "name", "Backup Daily Runtimes & VFD Energy");
+    cJSON_AddStringToObject(backupBlock, "addr", "0x15B8 - 0x15E7");
+    cJSON_AddNumberToObject(backupBlock, "size", 48);
+    cJSON_AddStringToObject(backupBlock, "type", "backup");
+    cJSON_AddItemToArray(blocks, backupBlock);
 
     /* 4. System States & Modes block (0x1600 - 0x1615) */
     cJSON *sysBlock = cJSON_CreateObject();
