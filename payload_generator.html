@@ -170,8 +170,9 @@
                 <option value="112">112: Resume Schedule (Khôi phục lịch trình)</option>
                 <option value="113">113: Set VFD Report Interval (Thời gian gửi báo cáo biến tần)</option>
                 <option value="114">114: Configure Oxy Mode (Cấu hình Chế độ Oxy Ao)</option>
-                <option value="115">115: Configure Feeder Mode (Cấu hình Chế độ Máy Cho Ăn)</option>
-                <option value="116">116: Request Running Time Device (Yêu cầu gửi báo cáo giờ chạy 301 & Reset)</option>
+                <option value="115">115: Configure Feeder Mode (Cấu hình Chế độ Máy Cho Ăn Ao)</option>
+                <option value="116">116: Request Running Time Device (Yêu cầu chụp và gửi báo cáo 301)</option>
+                <option value="117">117: Confirm Receive 301 (Xác nhận nhận thành công 301 để trừ giờ/điện)</option>
                 <option value="501">501: Update Firmware (Cập nhật phần mềm)</option>
                 <option value="502">502: Ask Version (Hỏi phiên bản FW)</option>
                 <option value="503">503: Ask Reset Count (Hỏi số lần Reset)</option>
@@ -467,7 +468,7 @@
                 document.getElementById('feederPondFields').classList.remove("hidden");
                 updateFeederActiveIdOptions();
             }
-            else if (mode === "109" || mode === "110" || mode === "116" || mode === "502" || mode === "503" || mode === "504") {
+            else if (mode === "109" || mode === "110" || mode === "116" || mode === "117" || mode === "502" || mode === "503" || mode === "504" || mode === "505") {
                 document.getElementById('deviceFields').classList.add("hidden");
             }
             else if (mode === "111") {
@@ -481,7 +482,7 @@
                 document.getElementById('deviceFields').classList.add("hidden");
                 document.getElementById('firmwareFields').classList.remove("hidden");
             }
-            else if (mode === "200" || mode === "201" || mode === "202" || mode === "206" || mode === "207" || mode === "208" || mode === "209") {
+            else if (mode === "200" || mode === "201" || mode === "202" || mode === "206" || mode === "207" || mode === "208" || mode === "209" || mode === "211") {
                 document.getElementById('deviceFields').classList.add("hidden");
             }
             else if (mode === "203") {
@@ -632,8 +633,8 @@
                 dataObj["ActiveDeviceID"] = actId;
                 payload["Data"] = dataObj;
             }
-            // 8. Các lệnh không cần tham số (109, 110, 116, 502, 503, 504, 505)
-            else if ([109, 110, 116, 502, 503, 504, 505].includes(mode)) {
+            // 8. Các lệnh không cần tham số (109, 110, 116, 117, 502, 503, 504, 505)
+            else if ([109, 110, 116, 117, 502, 503, 504, 505].includes(mode)) {
                 payload["Data"] = {};
             }
             // 9. Tạm dừng lịch trình
