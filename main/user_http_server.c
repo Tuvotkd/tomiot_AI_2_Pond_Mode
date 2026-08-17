@@ -17,6 +17,7 @@
 #include "esp_heap_caps.h"
 #include "esp_memory_utils.h"
 #include "user_log_stream.h"
+#include "user_azure.h"
 
 #define WIFI_CRED_MAGIC 0x57494649u
 #define AZURE_CRED_MAGIC 0x415A5552u
@@ -369,7 +370,16 @@ esp_err_t fram_map_get_handler(httpd_req_t *req)
         cJSON *d = cJSON_CreateObject();
         cJSON_AddNumberToObject(d, "index", i);
         char addrStr[32];
-        snprintf(addrStr, sizeof(addrStr), "0x%04X - 0x%04X", i * 512, (i + 1) * 512 - 1);
+        uint8_t slot = 0;
+        if (User_FRAM_Get_Slot_By_Device_Index(i, &slot))
+        {
+            uint16_t addr = User_FRAM_Get_Device_Address(slot);
+            snprintf(addrStr, sizeof(addrStr), "0x%04X - 0x%04X", addr, addr + 511);
+        }
+        else
+        {
+            snprintf(addrStr, sizeof(addrStr), "N/A (Not Stored)");
+        }
         cJSON_AddStringToObject(d, "addr", addrStr);
         cJSON_AddNumberToObject(d, "id", DeviceHandle.Device[i].id);
         cJSON_AddStringToObject(d, "name", DeviceHandle.Device[i].name);
@@ -459,11 +469,11 @@ esp_err_t fram_map_get_handler(httpd_req_t *req)
     cJSON_AddStringToObject(backupBlock, "type", "backup");
     cJSON_AddItemToArray(blocks, backupBlock);
 
-    /* 4. System States & Modes block (0x1600 - 0x1615) */
+    /* 4. System States & Modes block (0x1600 - 0x1616) */
     cJSON *sysBlock = cJSON_CreateObject();
     cJSON_AddStringToObject(sysBlock, "name", "System States, Modes & Logs Config");
-    cJSON_AddStringToObject(sysBlock, "addr", "0x1600 - 0x1615");
-    cJSON_AddNumberToObject(sysBlock, "size", 22);
+    cJSON_AddStringToObject(sysBlock, "addr", "0x1600 - 0x1616");
+    cJSON_AddNumberToObject(sysBlock, "size", 23);
     cJSON_AddStringToObject(sysBlock, "type", "system");
     cJSON_AddNumberToObject(sysBlock, "pond_mode", Sys_Info.pondMode);
     cJSON_AddNumberToObject(sysBlock, "vfd_enabled", Sys_Info.vfdEnabled);
@@ -471,15 +481,16 @@ esp_err_t fram_map_get_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(sysBlock, "feeder_active_id", Sys_Info.activeFeederId);
     cJSON_AddNumberToObject(sysBlock, "oxy_mode", Sys_Info.oxyMode);
     cJSON_AddNumberToObject(sysBlock, "oxy_active_id", Sys_Info.activeOxyId);
+    cJSON_AddNumberToObject(sysBlock, "traditional_oxy_enabled", Sys_Info.traditionalOxyEnabled);
     cJSON_AddItemToArray(blocks, sysBlock);
 
-    /* 5. Free Space block (0x1616 - dynamic end) */
+    /* 5. Free Space block (0x1617 - dynamic end) */
     cJSON *freeBlock = cJSON_CreateObject();
     cJSON_AddStringToObject(freeBlock, "name", "Unallocated Free Memory");
     char freeAddrStr[32];
-    snprintf(freeAddrStr, sizeof(freeAddrStr), "0x1616 - 0x%04X", (unsigned int)(total_capacity - 1));
+    snprintf(freeAddrStr, sizeof(freeAddrStr), "0x1617 - 0x%04X", (unsigned int)(total_capacity - 1));
     cJSON_AddStringToObject(freeBlock, "addr", freeAddrStr);
-    cJSON_AddNumberToObject(freeBlock, "size", (total_capacity > 0x1616) ? (total_capacity - 0x1616) : 0);
+    cJSON_AddNumberToObject(freeBlock, "size", (total_capacity > 0x1617) ? (total_capacity - 0x1617) : 0);
     cJSON_AddStringToObject(freeBlock, "type", "free");
     cJSON_AddItemToArray(blocks, freeBlock);
 

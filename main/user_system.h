@@ -11,16 +11,6 @@
 #define START_OF_FRAME 0x02
 #define END_OF_FRAME    0x03
 
-// #define SYS_SERVER_IP_DEFAULT   "192.168.1.100"
-// #define SYS_SERVER_PORT_DEFAULT   3000
-// #define SYS_WIFI_SSID_DEFAULT   "MebiOneIOT"
-// #define SYS_WIFI_PASS_DEFAULT   "MebiOne@123"
-
-
-// #define SYS_IOT_HUB_HOST_NAME_DEFAULT           "VuIoTHub.azure-devices.net"
-// #define SYS_IOT_HUB_DEVICE_ID_DEFAULT           "VuDevice"
-// #define SYS_IOT_HUB_SYMMETRIC_KEY_DEFAULT       "xOw6BICGo79moY00yntL7ZTQ0eRZD3sICfOe+29qRr0="
-
 #define DEVICE_ID_GROUP_1_NUM1  11
 #define DEVICE_ID_GROUP_1_NUM2  12
 #define DEVICE_ID_GROUP_1_NUM3  13
@@ -63,6 +53,7 @@
 #define FRAM_CONSOLE_MONITOR_ENABLED_ADDR 0x1613 // 1 byte: 0 = Tắt (mặc định), 1 = Bật
 #define FRAM_RUNTIME_FILE_INDEX_ADDR      0x1614 // 1 byte: Chỉ số file hiện tại (1 -> 5)
 #define FRAM_RUNTIME_PACKET_COUNT_ADDR     0x1615 // 1 byte: Số gói tin đã ghi trong tuần (0 -> 6)
+#define FRAM_TRADITIONAL_OXY_ENABLED_ADDR 0x1616 // 1 byte: 0 = Không có, 1 = Có máy oxy truyền thống (mặc định)
 #define FRAM_IP_ADDR_ADDR                 0x1620 // 16 bytes: IP address string format (e.g., "192.168.1.100")
 
 #define TELEMETRY_CODE_REPORT_RUNNING_TIME 301
@@ -150,6 +141,7 @@ typedef struct
     uint8_t vfdEnabled;        // 0: Disabled, 1: Enabled
     uint8_t perfMonitorEnabled; // 0: Tắt (mặc định), 1: Bật
     uint8_t consoleMonitorEnabled; // 0: Tắt (mặc định), 1: Bật
+    uint8_t traditionalOxyEnabled; // 0: Không có (Tự do), 1: Có máy oxy truyền thống (mặc định)
 }Sys_Info_Handle_t;
 
 extern Sys_Info_Handle_t Sys_Info;

@@ -37,15 +37,6 @@
 #define IO_10_TEST      10
 
 
-/* Define for load cell */
-
-#define LOADCELL_SCK_OUTPUT_PIN 5
-#define LOADCELL_DATA_INPUT_PIN 4
-
-#define LOADCELL_OUTPUT_PIN_SEL  ((1ULL<<LOADCELL_SCK_OUTPUT_PIN))
-#define LOADCELL_INPUT_PIN_SEL  ((1ULL<<LOADCELL_DATA_INPUT_PIN))
-
-
 /* Define for input */
 
 #define I2C_MASTER_SCL_IO   6
@@ -80,9 +71,6 @@
 #define GROUP_3_DEVICE_ID_1   31
 #define GROUP_3_DEVICE_ID_2   32
 
-// #define GROUP_3_DEVICE_ID_1   32
-// #define GROUP_3_DEVICE_ID_2   31
-
 
 #define GROUP_4_DEVICE_NAME_1   "Syphon_1"
 #define GROUP_4_DEVICE_NAME_2   "Syphon_2"
@@ -90,8 +78,6 @@
 
 #define GROUP_4_DEVICE_ID_1   41
 #define GROUP_4_DEVICE_ID_2   42
-
-
 
 
 typedef enum

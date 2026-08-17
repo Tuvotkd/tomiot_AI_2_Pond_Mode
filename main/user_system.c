@@ -63,6 +63,7 @@ void User_System_Get_Config(void)
         Sys_Info.activeOxyId = 99;
         Sys_Info.pondMode = POND_MODE_10_DEV;
         Sys_Info.vfdEnabled = 1; // default to enabled
+        Sys_Info.traditionalOxyEnabled = 1; // default to traditional oxy enabled
     }
     else
     {
@@ -161,6 +162,16 @@ void User_System_Get_Config(void)
         if (console_enabled_raw > 1) console_enabled_raw = 0;
         Sys_Info.consoleMonitorEnabled = console_enabled_raw;
         ESP_LOGI("SYS INIT", "Console Monitor Enabled Loaded: %s", Sys_Info.consoleMonitorEnabled == 1 ? "Bật (Enable)" : "Tắt (Disable)");
+
+        // 7. Đọc cấu hình Traditional Oxy Enabled (1 byte)
+        uint8_t trad_oxy_raw = 1;
+        if (!Fram_Read_Data(FRAM_TRADITIONAL_OXY_ENABLED_ADDR, &trad_oxy_raw, 1))
+        {
+            trad_oxy_raw = 1; // Mặc định là có máy oxy truyền thống
+        }
+        if (trad_oxy_raw > 1) trad_oxy_raw = 1;
+        Sys_Info.traditionalOxyEnabled = trad_oxy_raw;
+        ESP_LOGI("SYS INIT", "Traditional Oxy Enabled Loaded: %s", Sys_Info.traditionalOxyEnabled == 1 ? "Có (Yes)" : "Không (No)");
     }
 }
 

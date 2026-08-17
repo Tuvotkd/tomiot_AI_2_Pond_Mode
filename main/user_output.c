@@ -473,7 +473,7 @@ void User_Device_Report_Daily_Runtimes_And_Reset(void)
     // Thêm lượng điện tiêu thụ trong ngày vào gói Code 301
     if (Sys_Info.vfdEnabled == 1)
     {
-        cJSON_AddNumberToObject(root, "VfdDailyEnergy", round(backup_vfd_energy * 10.0) / 10.0);
+        cJSON_AddNumberToObject(root, "VfdEnergy", round(backup_vfd_energy * 10.0) / 10.0);
     }
 
     char *json_str = cJSON_PrintUnformatted(root);
@@ -1228,18 +1228,21 @@ void User_Output_Polling(Device_Handle_t *handle)
                 }
             }
 
-            if (Sys_Info.oxyMode == 0)
+            if (Sys_Info.traditionalOxyEnabled == 1)
             {
-                if(handle->Device[i].id == GROUP_2_DEVICE_ID_1 || handle->Device[i].id == GROUP_2_DEVICE_ID_2)
+                if (Sys_Info.oxyMode == 0)
                 {
-                    continue; // Chế độ 2 máy: Cả hai máy đều là máy oxy, không chạy lịch trình tự động
+                    if(handle->Device[i].id == GROUP_2_DEVICE_ID_1 || handle->Device[i].id == GROUP_2_DEVICE_ID_2)
+                    {
+                        continue; // Chế độ 2 máy: Cả hai máy đều là máy oxy, không chạy lịch trình tự động
+                    }
                 }
-            }
-            else if (Sys_Info.oxyMode == 1)
-            {
-                if(handle->Device[i].id == Sys_Info.activeOxyId)
+                else if (Sys_Info.oxyMode == 1)
                 {
-                    continue; // Máy oxy chính ở chế độ 1 máy, không chạy lịch trình
+                    if(handle->Device[i].id == Sys_Info.activeOxyId)
+                    {
+                        continue; // Máy oxy chính ở chế độ 1 máy, không chạy lịch trình
+                    }
                 }
             }
 
@@ -1308,31 +1311,45 @@ void User_Output_Polling(Device_Handle_t *handle)
             bool is_potential_fault = false;
             if(i == 4)
             {
-                // Máy oxy 1 (ID 21): Ở Mode 4 ao check cặp chân 4 & 10. Ở Mode 10 ao check 4 & 10 (hoặc theo activeOxyId)
-                if (Sys_Info.pondMode == POND_MODE_4_DEV)
+                if (Sys_Info.traditionalOxyEnabled == 1)
                 {
-                    is_potential_fault = (((handle->inputBuf & (1UL << 4)) == 0) && ((handle->inputBuf & (1UL << 10)) == 0));
-                }
-                else if (Sys_Info.oxyMode == 0 || (Sys_Info.oxyMode == 1 && Sys_Info.activeOxyId == 21))
-                {
-                    is_potential_fault = (((handle->inputBuf & (1UL << 4)) == 0) && ((handle->inputBuf & (1UL << 10)) == 0));
+                    // Máy oxy 1 (ID 21): Ở Mode 4 ao check cặp chân 4 & 10. Ở Mode 10 ao check 4 & 10 (hoặc theo activeOxyId)
+                    if (Sys_Info.pondMode == POND_MODE_4_DEV)
+                    {
+                        is_potential_fault = (((handle->inputBuf & (1UL << 4)) == 0) && ((handle->inputBuf & (1UL << 10)) == 0));
+                    }
+                    else if (Sys_Info.oxyMode == 0 || (Sys_Info.oxyMode == 1 && Sys_Info.activeOxyId == 21))
+                    {
+                        is_potential_fault = (((handle->inputBuf & (1UL << 4)) == 0) && ((handle->inputBuf & (1UL << 10)) == 0));
+                    }
+                    else
+                    {
+                        // Chạy như thiết bị thường (chỉ check chân 4)
+                        is_potential_fault = ((handle->inputBuf & (1UL << 4)) == 0);
+                    }
                 }
                 else
                 {
-                    // Chạy như thiết bị thường (chỉ check chân 4)
                     is_potential_fault = ((handle->inputBuf & (1UL << 4)) == 0);
                 }
             }
             else if(i == 5)
             {
-                // Máy oxy 2 (ID 22): Logic máy oxy (check chân 5 & 11) chạy khi oxyMode = 0 HOẶC khi oxyMode = 1 và máy 2 là máy oxy chính
-                if (Sys_Info.oxyMode == 0 || (Sys_Info.oxyMode == 1 && Sys_Info.activeOxyId == 22))
+                if (Sys_Info.traditionalOxyEnabled == 1)
                 {
-                    is_potential_fault = (((handle->inputBuf & (1UL << 5)) == 0) && ((handle->inputBuf & (1UL << 11)) == 0));
+                    // Máy oxy 2 (ID 22): Logic máy oxy (check chân 5 & 11) chạy khi oxyMode = 0 HOẶC khi oxyMode = 1 và máy 2 là máy oxy chính
+                    if (Sys_Info.oxyMode == 0 || (Sys_Info.oxyMode == 1 && Sys_Info.activeOxyId == 22))
+                    {
+                        is_potential_fault = (((handle->inputBuf & (1UL << 5)) == 0) && ((handle->inputBuf & (1UL << 11)) == 0));
+                    }
+                    else
+                    {
+                        // Chạy như thiết bị thường (chỉ check chân 5)
+                        is_potential_fault = ((handle->inputBuf & (1UL << 5)) == 0);
+                    }
                 }
                 else
                 {
-                    // Chạy như thiết bị thường (chỉ check chân 5)
                     is_potential_fault = ((handle->inputBuf & (1UL << 5)) == 0);
                 }
             }

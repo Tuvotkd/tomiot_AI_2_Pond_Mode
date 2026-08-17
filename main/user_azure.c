@@ -696,7 +696,7 @@ uint16_t User_FRAM_Get_Device_Address(uint8_t index)
     return index << 9;   // index * 512
 }
 
-static bool prvGetFramSlotByDeviceIndex(uint8_t index, uint8_t *slot_out)
+bool User_FRAM_Get_Slot_By_Device_Index(uint8_t index, uint8_t *slot_out)
 {
     if(slot_out == NULL) return false;   
     switch(index)
@@ -706,6 +706,12 @@ static bool prvGetFramSlotByDeviceIndex(uint8_t index, uint8_t *slot_out)
         case 2: // PaddleWheel_3
         case 3: // PaddleWheel_4
             *slot_out = index;
+            return true;
+        case 4: // AirBlower_1 -> Slot 8
+            *slot_out = 8;
+            return true;
+        case 5: // AirBlower_2 -> Slot 9
+            *slot_out = 9;
             return true;
         case 6: // Feeder_1_M1
             *slot_out = 4;
@@ -720,7 +726,7 @@ static bool prvGetFramSlotByDeviceIndex(uint8_t index, uint8_t *slot_out)
             *slot_out = 7;
             return true;
         default:
-            return false; // AirBlow or unknown: do not store in FRAM
+            return false;
     }
 }
 
@@ -733,7 +739,7 @@ bool FRAM_SaveDevice(uint8_t index)
     }
 
     uint8_t slot = 0;
-    if(!prvGetFramSlotByDeviceIndex(index, &slot))
+    if(!User_FRAM_Get_Slot_By_Device_Index(index, &slot))
     {
         ESP_LOGI("FRAM_SAVE", "Skip device %d (no schedule storage)", index);
         return false;
@@ -772,7 +778,7 @@ void FRAM_LoadDevice(uint8_t index)
     }
 
     uint8_t slot = 0;
-    if(!prvGetFramSlotByDeviceIndex(index, &slot))
+    if(!User_FRAM_Get_Slot_By_Device_Index(index, &slot))
     {
         ESP_LOGI("FRAM_LOAD", "Skip device %d (no schedule storage)", index);
         return;
@@ -1336,7 +1342,7 @@ void Azure_Handle_Direct_Method_Data(cJSON *payload, DirectMethodResponse_t *res
                     }
                 }
 
-                if ((Sys_Info.oxyMode == 0 && (_deviceId == GROUP_2_DEVICE_ID_1 || _deviceId == GROUP_2_DEVICE_ID_2)) || (Sys_Info.oxyMode == 1 && _deviceId == Sys_Info.activeOxyId))
+                if (Sys_Info.traditionalOxyEnabled == 1 && ((Sys_Info.oxyMode == 0 && (_deviceId == GROUP_2_DEVICE_ID_1 || _deviceId == GROUP_2_DEVICE_ID_2)) || (Sys_Info.oxyMode == 1 && _deviceId == Sys_Info.activeOxyId)))
                 {
                     response->status = COMMAND_STATUS_BAD_REQUEST;
                     response->payloadLength = sprintf(response->payload, "Ignore schedule for Oxy machine (DeviceId %d)", _deviceId);
@@ -1498,7 +1504,7 @@ void Azure_Handle_Direct_Method_Data(cJSON *payload, DirectMethodResponse_t *res
                     }
                 }
 
-                if ((Sys_Info.oxyMode == 0 && (_deviceId == GROUP_2_DEVICE_ID_1 || _deviceId == GROUP_2_DEVICE_ID_2)) || (Sys_Info.oxyMode == 1 && _deviceId == Sys_Info.activeOxyId))
+                if (Sys_Info.traditionalOxyEnabled == 1 && ((Sys_Info.oxyMode == 0 && (_deviceId == GROUP_2_DEVICE_ID_1 || _deviceId == GROUP_2_DEVICE_ID_2)) || (Sys_Info.oxyMode == 1 && _deviceId == Sys_Info.activeOxyId)))
                 {
                     response->status = COMMAND_STATUS_BAD_REQUEST;
                     response->payloadLength = sprintf(response->payload, "Ignore schedule for Oxy machine (DeviceId %d)", _deviceId);
@@ -1734,7 +1740,7 @@ void Azure_Handle_Direct_Method_Data(cJSON *payload, DirectMethodResponse_t *res
                     ESP_LOGW("AZURE: ", "Ignore schedule for Feeder_1_M1 (DeviceId %d)", _deviceId);
                     goto method_done;
                 }
-                if ((Sys_Info.oxyMode == 0 && (_deviceId == GROUP_2_DEVICE_ID_1 || _deviceId == GROUP_2_DEVICE_ID_2)) || (Sys_Info.oxyMode == 1 && _deviceId == Sys_Info.activeOxyId))
+                if (Sys_Info.traditionalOxyEnabled == 1 && ((Sys_Info.oxyMode == 0 && (_deviceId == GROUP_2_DEVICE_ID_1 || _deviceId == GROUP_2_DEVICE_ID_2)) || (Sys_Info.oxyMode == 1 && _deviceId == Sys_Info.activeOxyId)))
                 {
                     response->status = COMMAND_STATUS_BAD_REQUEST;
                     response->payloadLength = snprintf(response->payload, sizeof(response->payload), "Ignore schedule for Oxy machine (DeviceId %d)", _deviceId);

@@ -183,9 +183,15 @@ static const char *portal_html =
 "        </select>"
 "        "
 "        <label style='font-size:13px;font-weight:600;'>Trạng thái biến tần VFD:</label>"
-"        <select id='vfd_enabled_sel' style='margin-top:6px;'>"
+"        <select id='vfd_enabled_sel' style='margin-top:6px;margin-bottom:14px;'>"
 "          <option value='1'>Kích hoạt (Enable)</option>"
 "          <option value='0'>Vô hiệu hóa (Disable)</option>"
+"        </select>"
+"        "
+"        <label style='font-size:13px;font-weight:600;'>Chế độ máy Oxy:</label>"
+"        <select id='trad_oxy_sel' style='margin-top:6px;'>"
+"          <option value='1'>Ao có máy oxy truyền thống (Khóa 21, 22)</option>"
+"          <option value='0'>Ao KHÔNG có máy oxy truyền thống (Tự do 21, 22)</option>"
 "        </select>"
 "        "
 "        <div id='sys_cfg_current' style='margin-top:12px;font-size:12px;opacity:0.65;line-height:1.6;'></div>"
@@ -372,6 +378,7 @@ static const char *portal_html =
 "            <div class='info-item'><span>Feeder Mode:</span><strong id='cur_feeder' style='color:var(--p);'>-</strong></div>"
 "            <div class='info-item'><span>Pond Mode:</span><strong id='cur_pond' style='color:var(--p);'>-</strong></div>"
 "            <div class='info-item'><span>VFD Enable:</span><strong id='cur_vfd' style='color:var(--s);'>-</strong></div>"
+"            <div class='info-item'><span>Traditional Oxy:</span><strong id='cur_trad_oxy' style='color:var(--s);'>-</strong></div>"
 "          </div>"
 "          <div style='display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;'>"
 "            <button class='btn-secondary' style='margin-top:0;flex:1;' onclick='unlockInfo()'>↻ Refresh</button>"
@@ -592,7 +599,7 @@ static const char *portal_html =
 "        html += `<div style=\"font-size:13px;\"><div>Host: <strong>${b.host}</strong></div><div>Device ID: <strong>${b.dev_id||'-'}</strong></div><div>Status: <span style=\"color:${b.valid?'var(--s)':'var(--d)'}; font-weight:700;\">${b.valid?'Valid (Configured)':'Empty'}</span></div></div>`;"
 "      }"
 "      else if(b.type === 'system') {"
-"        html += `<div style=\"font-size:13px; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px;\"><div>🏖️ Pond Mode: <strong style=\"color:var(--p);\">${b.pond_mode===1?'Mode 4 thiết bị':'Mode 10 thiết bị'}</strong></div><div>⚡ VFD Enabled: <strong style=\"color:var(--s);\">${b.vfd_enabled===1?'Enable':'Disable'}</strong></div><div>⚙️ Feeder Mode: <strong>${b.feeder_mode===1?'1 Contactor':'2 Contactor'}</strong> (ID: ${b.feeder_active_id})</div><div>💨 Oxy Mode: <strong>${b.oxy_mode===1?'1 Máy sục khí':'2 Máy sục khí'}</strong> (ID: ${b.oxy_active_id})</div></div>`;"
+"        html += `<div style=\"font-size:13px; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px;\"><div>🏖️ Pond Mode: <strong style=\"color:var(--p);\">${b.pond_mode===1?'Mode 4 thiết bị':'Mode 10 thiết bị'}</strong></div><div>⚡ VFD Enabled: <strong style=\"color:var(--s);\">${b.vfd_enabled===1?'Enable':'Disable'}</strong></div><div>⚙️ Feeder Mode: <strong>${b.feeder_mode===1?'1 Contactor':'2 Contactor'}</strong> (ID: ${b.feeder_active_id})</div><div>💨 Oxy Mode: <strong>${b.oxy_mode===1?'1 Máy sục khí':'2 Máy sục khí'}</strong> (ID: ${b.oxy_active_id})</div><div>🧬 Trad Oxy: <strong>${b.traditional_oxy_enabled===1?'Yes':'No'}</strong></div></div>`;"
 "      }"
 "      else if(b.type === 'free') {"
 "        html += `<div style=\"font-size:12px; opacity:0.7;\">Unallocated space ready for future feature expansion</div>`;"
@@ -619,6 +626,7 @@ static const char *portal_html =
 "    document.getElementById('cur_feeder').innerText=d.feeder_mode===1?'1 Contactor (ID: '+d.feeder_active_id+')':'2 Contactor';"
 "    document.getElementById('cur_pond').innerText=d.pond_mode===1?'Mode 4 thiết bị':'Mode 10 thiết bị';"
 "    document.getElementById('cur_vfd').innerText=d.vfd_enabled===1?'Enabled':'Disabled';"
+"    document.getElementById('cur_trad_oxy').innerText=d.traditional_oxy_enabled===1?'Có máy oxy truyền thống':'Không có máy oxy truyền thống';"
 "    document.getElementById('pin_area').style.display='none'; document.getElementById('info_res').style.display='block';"
 "  }).catch(e=>alert(e.message));"
 "}"
@@ -768,23 +776,27 @@ static const char *portal_html =
 "if(localStorage.getItem('theme')==='dark')toggleDark();"
 "scan();"
 "fetch('/api/config').then(r=>r.json()).then(d=>{"
-"  if(d.pond_mode !== undefined && d.vfd_enabled !== undefined) {"
+"  if(d.pond_mode !== undefined && d.vfd_enabled !== undefined && d.traditional_oxy_enabled !== undefined) {"
 "    document.getElementById('pond_mode_sel').value = d.pond_mode;"
 "    document.getElementById('vfd_enabled_sel').value = d.vfd_enabled;"
+"    document.getElementById('trad_oxy_sel').value = d.traditional_oxy_enabled;"
 "    const pondStr = d.pond_mode===1 ? 'Mode 4 thiết bị (11,12,21,41)' : 'Mode 10 thiết bị (đầy đủ)';"
 "    const vfdStr = d.vfd_enabled===1 ? 'Đang kích hoạt (Enable)' : 'Đang vô hiệu hóa (Disable)';"
-"    document.getElementById('sys_cfg_current').innerHTML = `Hiện tại:<br/>• Ao nuôi: <strong>${pondStr}</strong><br/>• Biến tần: <strong>${vfdStr}</strong>`;"
+"    const tradStr = d.traditional_oxy_enabled===1 ? 'Có máy oxy truyền thống (Khóa 21, 22)' : 'Không có máy oxy truyền thống (Tự do 21, 22)';"
+"    document.getElementById('sys_cfg_current').innerHTML = `Hiện tại:<br/>• Ao nuôi: <strong>${pondStr}</strong><br/>• Biến tần: <strong>${vfdStr}</strong><br/>• Máy Oxy: <strong>${tradStr}</strong>`;"
 "  }"
 "}).catch(()=>{});"
 "function saveSystemConfig(){"
 "  const pin=global_pin; if(!pin) return alert('Chưa nhập mã PIN Config!');"
 "  const pondMode=parseInt(document.getElementById('pond_mode_sel').value);"
 "  const vfdEnabled=parseInt(document.getElementById('vfd_enabled_sel').value);"
+"  const tradOxy=parseInt(document.getElementById('trad_oxy_sel').value);"
 "  const pondStr = pondMode===1 ? 'Mode 4 thiết bị (11,12,21,41)' : 'Mode 10 thiết bị (đầy đủ)';"
 "  const vfdStr = vfdEnabled===1 ? 'Kích hoạt (Enable)' : 'Vô hiệu hóa (Disable)';"
-"  let warning = `Anh có chắc muốn lưu cấu hình mới và khởi động lại ESP?\\n\\n• Chế độ ao: ${pondStr}\\n• Biến tần: ${vfdStr}\\n\\n⚠️ LƯU Ý: Nếu thay đổi Chế độ ao nuôi, toàn bộ lịch trình trong FRAM sẽ bị XÓA!`;"
+"  const tradStr = tradOxy===1 ? 'Ao có máy oxy truyền thống (Khóa 21, 22)' : 'Ao KHÔNG có máy oxy truyền thống (Tự do 21, 22)';"
+"  let warning = `Anh có chắc muốn lưu cấu hình mới và khởi động lại ESP?\\n\\n• Chế độ ao: ${pondStr}\\n• Biến tần: ${vfdStr}\\n• Máy Oxy: ${tradStr}\\n\\n⚠️ LƯU Ý: Nếu thay đổi Chế độ ao nuôi, toàn bộ lịch trình trong FRAM sẽ bị XÓA!`;"
 "  if(!confirm(warning)) return;"
-"  fetch('/api/set_system_config',{method:'POST',body:JSON.stringify({pond_mode:pondMode,vfd_enabled:vfdEnabled,pin:pin})}).then(r=>{"
+"  fetch('/api/set_system_config',{method:'POST',body:JSON.stringify({pond_mode:pondMode,vfd_enabled:vfdEnabled,trad_oxy_enabled:tradOxy,pin:pin})}).then(r=>{"
 "    if(r.ok) {"
 "      r.text().then(t => {"
 "        if(t==='OK_NO_CHANGE') alert('Không có thay đổi nào cần lưu.');"
@@ -1772,6 +1784,7 @@ static esp_err_t info_get_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "feeder_active_id", Sys_Info.activeFeederId);
     cJSON_AddNumberToObject(root, "pond_mode", Sys_Info.pondMode);
     cJSON_AddNumberToObject(root, "vfd_enabled", Sys_Info.vfdEnabled);
+    cJSON_AddNumberToObject(root, "traditional_oxy_enabled", Sys_Info.traditionalOxyEnabled);
 
     char *json_str = cJSON_PrintUnformatted(root);
     httpd_resp_set_type(req, "application/json");
@@ -1893,6 +1906,7 @@ static esp_err_t api_config_get_handler(httpd_req_t *req)
 
     cJSON_AddNumberToObject(root, "pond_mode", Sys_Info.pondMode);
     cJSON_AddNumberToObject(root, "vfd_enabled", Sys_Info.vfdEnabled);
+    cJSON_AddNumberToObject(root, "traditional_oxy_enabled", Sys_Info.traditionalOxyEnabled);
     cJSON_AddNumberToObject(root, "oxy_mode", Sys_Info.oxyMode);
     cJSON_AddNumberToObject(root, "feeder_mode", Sys_Info.feederMode);
 
@@ -1931,18 +1945,22 @@ static esp_err_t set_system_config_post_handler(httpd_req_t *req)
         return httpd_resp_send_err(req, HTTPD_403_FORBIDDEN, "Invalid PIN");
     }
 
-    // Lấy giá trị pond_mode và vfd_enabled
+    // Lấy giá trị pond_mode, vfd_enabled và trad_oxy_enabled
     cJSON *pond_mode_obj = cJSON_GetObjectItem(root, "pond_mode");
     cJSON *vfd_enabled_obj = cJSON_GetObjectItem(root, "vfd_enabled");
+    cJSON *trad_oxy_enabled_obj = cJSON_GetObjectItem(root, "trad_oxy_enabled");
 
-    if (!pond_mode_obj || !cJSON_IsNumber(pond_mode_obj) || !vfd_enabled_obj || !cJSON_IsNumber(vfd_enabled_obj))
+    if (!pond_mode_obj || !cJSON_IsNumber(pond_mode_obj) || 
+        !vfd_enabled_obj || !cJSON_IsNumber(vfd_enabled_obj) ||
+        !trad_oxy_enabled_obj || !cJSON_IsNumber(trad_oxy_enabled_obj))
     {
         cJSON_Delete(root);
-        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing pond_mode or vfd_enabled field");
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing pond_mode, vfd_enabled, or trad_oxy_enabled field");
     }
 
     uint8_t new_pond_mode = (uint8_t)pond_mode_obj->valueint;
     uint8_t new_vfd_enabled = (uint8_t)vfd_enabled_obj->valueint;
+    uint8_t new_trad_oxy_enabled = (uint8_t)trad_oxy_enabled_obj->valueint;
     cJSON_Delete(root);
 
     if (new_pond_mode != POND_MODE_10_DEV && new_pond_mode != POND_MODE_4_DEV)
@@ -1951,16 +1969,21 @@ static esp_err_t set_system_config_post_handler(httpd_req_t *req)
     if (new_vfd_enabled != 0 && new_vfd_enabled != 1)
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid vfd_enabled value");
 
+    if (new_trad_oxy_enabled != 0 && new_trad_oxy_enabled != 1)
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid trad_oxy_enabled value");
+
     bool pond_changed = (new_pond_mode != Sys_Info.pondMode);
     bool vfd_changed = (new_vfd_enabled != Sys_Info.vfdEnabled);
+    bool trad_oxy_changed = (new_trad_oxy_enabled != Sys_Info.traditionalOxyEnabled);
 
-    if (!pond_changed && !vfd_changed)
+    if (!pond_changed && !vfd_changed && !trad_oxy_changed)
     {
         return httpd_resp_sendstr(req, "OK_NO_CHANGE");
     }
 
-    ESP_LOGW(PORTAL_TAG, "System configuration change requested. PondMode: %d->%d, VFD: %d->%d",
-             Sys_Info.pondMode, new_pond_mode, Sys_Info.vfdEnabled, new_vfd_enabled);
+    ESP_LOGW(PORTAL_TAG, "System configuration change requested. PondMode: %d->%d, VFD: %d->%d, TradOxy: %d->%d",
+             Sys_Info.pondMode, new_pond_mode, Sys_Info.vfdEnabled, new_vfd_enabled, 
+             Sys_Info.traditionalOxyEnabled, new_trad_oxy_enabled);
 
     // Gửi phản hồi trước khi reboot
     httpd_resp_sendstr(req, "OK");
@@ -1973,6 +1996,13 @@ static esp_err_t set_system_config_post_handler(httpd_req_t *req)
         uint8_t val = new_vfd_enabled;
         Fram_Write_Data(FRAM_VFD_ENABLED_ADDR, &val, 1);
         Sys_Info.vfdEnabled = new_vfd_enabled;
+    }
+
+    if (trad_oxy_changed)
+    {
+        uint8_t val = new_trad_oxy_enabled;
+        Fram_Write_Data(FRAM_TRADITIONAL_OXY_ENABLED_ADDR, &val, 1);
+        Sys_Info.traditionalOxyEnabled = new_trad_oxy_enabled;
     }
 
     if (pond_changed)

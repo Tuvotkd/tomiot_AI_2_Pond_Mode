@@ -70,3 +70,4 @@ bool FRAM_SaveDevice(uint8_t index);
 void FRAM_LoadDevice(uint8_t index);
 bool Device_Add(uint32_t id, const char *name);
 uint16_t User_FRAM_Get_Device_Address(uint8_t index);
+bool User_FRAM_Get_Slot_By_Device_Index(uint8_t index, uint8_t *slot_out);
