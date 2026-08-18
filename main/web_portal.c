@@ -310,7 +310,10 @@ static const char *portal_html =
 "      <div class='card'>"
 "        <div class='section-title' style='display:flex; justify-content:space-between; align-items:center;'>"
 "          <span>💾 FRAM Memory Map (32KB)</span>"
-"          <button class='btn-secondary' style='margin:0; width:auto; padding:6px 12px; font-size:12px;' onclick='loadFramMap(this)'><span>↻</span> Refresh</button>"
+"          <div style='display:flex; gap:8px;'>"
+"            <button class='btn-danger' style='margin:0; width:auto; padding:6px 12px; font-size:12px; background-color:#ef4444;' onclick='clearFramExceptWifiAzure()'>⚠️ Clear All FRAM</button>"
+"            <button class='btn-secondary' style='margin:0; width:auto; padding:6px 12px; font-size:12px;' onclick='loadFramMap(this)'><span>↻</span> Refresh</button>"
+"          </div>"
 "        </div>"
 "        <div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:12px; margin-bottom:16px;'>"
 "          <div style='background:var(--sub); padding:12px; border-radius:10px; text-align:center; border:1px solid var(--b);'>"
@@ -772,6 +775,25 @@ static const char *portal_html =
 "      else alert('Lỗi: PIN không hợp lệ hoặc kết nối thất bại!');"
 "    });"
 "  }"
+"}"
+"function clearFramExceptWifiAzure(){"
+"  const pin=prompt('Nhập mã PIN xác nhận:');"
+"  if(!pin) return;"
+"  if(pin!=='686868'){"
+"    alert('Mã PIN không đúng!');"
+"    return;"
+"  }"
+"  if(!confirm('Anh có chắc chắn muốn xóa TOÀN BỘ 32KB dữ liệu trên FRAM không?\\n\\n⚠️ LƯU Ý: Chỉ có cấu hình WiFi và Azure được giữ lại, toàn bộ lịch trình, giờ chạy và cài đặt hệ thống khác sẽ bị xóa sạch, thiết bị sẽ tự động khởi động lại sau khi xóa!')){"
+"    return;"
+"  }"
+"  fetch('/api/clear_fram_except_net',{method:'POST',body:JSON.stringify({pin:pin})}).then(r=>{"
+"    if(r.ok) {"
+"      alert('Đã gửi yêu cầu xóa và khởi động lại thiết bị!');"
+"    }"
+"    else {"
+"      r.text().then(t=>alert('Lỗi: ' + t));"
+"    }"
+"  }).catch(()=>alert('Kết nối thất bại!'));"
 "}"
 "if(localStorage.getItem('theme')==='dark')toggleDark();"
 "scan();"
@@ -2040,6 +2062,65 @@ static esp_err_t restart_post_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+static esp_err_t api_clear_fram_except_net_handler(httpd_req_t *req)
+{
+    if (req->content_len > 256)
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Body too large");
+
+    char buf[256] = {0};
+    int ret = httpd_req_recv(req, buf, req->content_len);
+    if (ret <= 0)
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No body");
+    buf[ret] = '\0';
+
+    cJSON *root = cJSON_Parse(buf);
+    if (!root)
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+
+    cJSON *pin_obj = cJSON_GetObjectItem(root, "pin");
+    if (!pin_obj || !cJSON_IsString(pin_obj) || strcmp(pin_obj->valuestring, "686868") != 0)
+    {
+        cJSON_Delete(root);
+        return httpd_resp_send_err(req, HTTPD_403_FORBIDDEN, "Invalid PIN");
+    }
+    cJSON_Delete(root);
+
+    ESP_LOGW(PORTAL_TAG, "User requested to CLEAR ENTIRE 32KB FRAM (Except Network) via Web Portal!");
+
+    // Send HTTP response OK first
+    httpd_resp_sendstr(req, "OK");
+
+    // Wait 1 second to let HTTP response send out, then wipe and reboot
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    // Clear entire 32KB of FRAM except network config (0x1400 -> 0x157F)
+    uint8_t zero_buf[256];
+    memset(zero_buf, 0, sizeof(zero_buf));
+
+    // Part 1: 0x0000 -> 0x13FF (5120 bytes - including device schedule slots 0-9)
+    for (uint16_t addr = 0x0000; addr < 0x1400; addr += sizeof(zero_buf))
+    {
+        uint16_t len = (0x1400 - addr) < sizeof(zero_buf) ? (0x1400 - addr) : (uint16_t)sizeof(zero_buf);
+        Fram_Write_Data(addr, zero_buf, len);
+    }
+
+    // Part 2: 0x1580 -> 0x7FFF (27264 bytes - including runtimes, backups, VFD, system config, slot 10, slot 11...)
+    for (uint32_t addr = 0x1580; addr < 0x8000; addr += sizeof(zero_buf))
+    {
+        uint16_t len = (0x8000 - addr) < sizeof(zero_buf) ? (0x8000 - addr) : (uint16_t)sizeof(zero_buf);
+        Fram_Write_Data(addr, zero_buf, len);
+    }
+
+    // Flush all outputs to OFF and reinit default devices in RAM
+    User_Out_Put_Flush_All(0);
+    User_Device_Init();
+
+    // Restart ESP32
+    esp_restart();
+
+    return ESP_OK;
+}
+
 void web_portal_register_handlers(httpd_handle_t server)
 {
     httpd_uri_t portal = { .uri = "/", .method = HTTP_GET, .handler = portal_get_handler };
@@ -2060,6 +2141,7 @@ void web_portal_register_handlers(httpd_handle_t server)
     httpd_uri_t portal_wildcard = { .uri = "/*", .method = HTTP_GET, .handler = portal_get_handler };
     httpd_uri_t api_config = { .uri = "/api/config", .method = HTTP_GET, .handler = api_config_get_handler };
     httpd_uri_t set_system_config = { .uri = "/api/set_system_config", .method = HTTP_POST, .handler = set_system_config_post_handler };
+    httpd_uri_t clear_fram_except_net = { .uri = "/api/clear_fram_except_net", .method = HTTP_POST, .handler = api_clear_fram_except_net_handler };
 
     httpd_register_uri_handler(server, &portal);
     httpd_register_uri_handler(server, &scan);
@@ -2078,6 +2160,7 @@ void web_portal_register_handlers(httpd_handle_t server)
     httpd_register_uri_handler(server, &format_api);
     httpd_register_uri_handler(server, &api_config);
     httpd_register_uri_handler(server, &set_system_config);
+    httpd_register_uri_handler(server, &clear_fram_except_net);
     httpd_register_uri_handler(server, &portal_wildcard);
 }
 
